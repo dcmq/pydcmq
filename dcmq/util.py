@@ -30,7 +30,6 @@ async def writeFile(filename, ds, data=None):
             await f.write(data)
         else:
             await f.write(datasetToBinary(ds))
-    return filename
 
 async def readFile(filename):
     with DicomBytesIO() as dcmfile:
