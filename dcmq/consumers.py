@@ -17,7 +17,19 @@ async def async_consumer(loop, server, methods, dcmhandler):
         print(msg)
         with msg.process():
             ds = datasetFromBinary(msg.body)
+            uri = msg.headers["uri"]
             if ds != None:
-                dcmhandler(ds)
+                dcmhandler(ds, uri)
 
     await queue.consume(handle_msg)
+
+def consumer_loop(server, methods, dcmhandler):
+    loop = asyncio.new_event_loop()
+    loop.create_task(
+        async_consumer(loop, 
+            server=server,
+            methods=methods,
+            dcmhandler=dcmhandler
+        )
+    )
+    loop.run_forever()

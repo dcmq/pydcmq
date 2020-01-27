@@ -1,1 +1,1 @@
-from .consumers import async_consumer
+from .consumers import consumer_loop
