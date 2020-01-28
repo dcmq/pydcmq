@@ -14,6 +14,18 @@ async def publish_dcm(channel, ds, uri):
         routing_key="stored.instance"
     )
 
+async def publish_dcm_series(channel, ds, uri):
+    dicom_exchange = await channel.declare_exchange(
+        'dicom', ExchangeType.TOPIC
+    )
+    await dicom_exchange.publish(
+        Message(
+            body=datasetToBinary(ds),
+            headers={"uri": uri}
+        ),
+        routing_key="stored.series"
+    )
+
 async def publish_nifti(channel, ds, uri):
     dicom_exchange = await channel.declare_exchange(
         'dicom', ExchangeType.TOPIC

@@ -13,6 +13,8 @@ settings.set_resample_spline_interpolation_order(1)
 settings.set_resample_padding(-1000)
 
 async def dcmhandler(channel, ds, uri):
+    if uri.startswith(f"{os.environ['HOME']}/.dimseweb/derived"):
+        return
     print(f"dicom2nii: converting {uri}")
     outdir = f"{os.environ['HOME']}/.dimseweb/nii/{ds.StudyInstanceUID}"
     pathlib.Path(outdir).mkdir(parents=True, exist_ok=True)
