@@ -13,7 +13,7 @@ settings.set_resample_spline_interpolation_order(1)
 settings.set_resample_padding(-1000)
 
 async def dcmhandler(channel, ds, uri):
-    if uri.startswith(f"{os.environ['HOME']}/.dimseweb/derived"):
+    if not "PRIMARY" in ds.ImageType: #only convert primary data
         return
     print(f"dicom2nii: converting {uri}")
     outdir = f"{os.environ['HOME']}/.dimseweb/nii/{ds.StudyInstanceUID}"

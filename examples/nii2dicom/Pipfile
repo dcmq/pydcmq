@@ -9,6 +9,7 @@ verify_ssl = true
 nibabel = "*"
 pydicom = "*"
 numpy = "*"
+pydcmq = {editable = true,path = "./../.."}
 
 [requires]
 python_version = "3.7"

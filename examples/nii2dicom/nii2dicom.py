@@ -1,5 +1,4 @@
 import asyncio
-import dicom2nifti
 from pydicom import dcmread, dcmwrite
 import os 
 import pathlib
@@ -9,6 +8,8 @@ from copy import deepcopy
 from dcmq import consumer_loop, publish_nifti, publish_nifti_study, publish_dcm_series
 
 def nii2dicom(ni, ds, rescale=False, windowing=False, name=""):
+    if not "DERIVED" in ds.ImageType: #only convert derived data
+        return
     if len(ni.shape) == 3:
         I,J,K = ni.shape
         T=1
