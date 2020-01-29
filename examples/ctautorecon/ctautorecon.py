@@ -24,12 +24,12 @@ async def run(cmd):
     if stderr:
         print(f'[stderr]\n{stderr.decode()}')
 
-def antsAffineToOrthogonal(infilename, outfilename)
+def antsAffineToOrthogonal(infilename, outfilename):
     m = loadmat(infilename)
     affine = np.reshape(m["AffineTransform_double_3_3"][:9,0], (3,3))
     Q,R = qr(affine)
-    for i = 1:3
-        if R[i,i] < 0
+    for i in range(3):
+        if R[i,i] < 0:
             Q[:,i] *= -1
     m["AffineTransform_double_3_3"][:9,0] = np.reshape(Q,9)
 
