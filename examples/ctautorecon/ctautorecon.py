@@ -56,7 +56,7 @@ async def dcmhandler(channel, ds, uri):
         ct2mni_orthogonal = path / "ct2mni0GenericOrthogonal.mat"
         antsAffineToOrthogonal(ct2mni, ct2mni_orthogonal)
         out = niidir / (d.SeriesInstanceUID + "MNI.nii.gz")
-        cmd = f"antsApplyTransforms -i {ct} -r {mni_hd} -o $out -t {ct2mni_orthogonal} --interpolation Linear -v -f -1024"
+        cmd = f"antsApplyTransforms -i {ct} -r {mni_hd} -o {out} -t {ct2mni_orthogonal} --interpolation Linear -v -f -1024"
         print(cmd)
         await run(cmd)
     ds.SeriesInstanceUID += ".12.13.8" #numeric code for MNI
