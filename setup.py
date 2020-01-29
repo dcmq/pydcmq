@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="pydcmq", # Replace with your own username
+    name="pydcmq",
     version="0.0.1",
     author="Victor Saase",
     author_email="vsaase@gmail.com",
