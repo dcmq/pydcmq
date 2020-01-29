@@ -36,7 +36,7 @@ def antsAffineToOrthogonal(infilename, outfilename)
     #need to write it explicitly because ANTs depends on the order of the variables
     fout = open(outfilename, "wax+")
     savemat(fout, {"AffineTransform_double_3_3": m["AffineTransform_double_3_3"]}, format='4')
-    savemat(fout, {"fixed": m["fixed"]})
+    savemat(fout, {"fixed": m["fixed"]}, format='4')
     fout.close()
 
 async def dcmhandler(channel, ds, uri):
