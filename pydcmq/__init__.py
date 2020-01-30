@@ -1,3 +1,3 @@
 from .consumers import *
-from .producers import *
+from .publishers import *
 from .util import fix_meta_info

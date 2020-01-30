@@ -8,7 +8,7 @@ import numpy as np
 from scipy.io import savemat, loadmat
 from scipy.linalg import qr
 from copy import deepcopy
-from dcmq import consumer_loop, publish_nifti, publish_nifti_study, publish_dcm_series
+from pydcmq import consumer_loop, publish_nifti, publish_nifti_study, publish_dcm_series
 
 localdir = Path(os.path.dirname(os.path.realpath(__file__)))
 

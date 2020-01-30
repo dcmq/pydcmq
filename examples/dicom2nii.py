@@ -4,7 +4,7 @@ from pydicom import dcmread
 from pydicom.tag import Tag
 import os 
 import pathlib
-from dcmq import consumer_loop, publish_nifti, publish_nifti_study
+from pydcmq import consumer_loop, publish_nifti, publish_nifti_study, async_consumer
 import dicom2nifti.settings as settings
 
 settings.disable_validate_orthogonal()
@@ -29,7 +29,7 @@ async def dcmhandler(channel, ds, uri):
                 if not Tag("ImageType") in refds or not "PRIMARY" in refds.ImageType: #only convert primary data
                     print(f"dicom2nii: {os.path.join(uri, series.name)} is not a primary image")
                     return
-                outfile = os.path.join(outdir, series.name + ".nii")
+                outfile = os.path.join(outdir, refds.SeriesInstanceUID + ".nii")
                 try:
                     dicom2nifti.dicom_series_to_nifti(series, outfile, reorient_nifti=True)
                 except Exception as e:

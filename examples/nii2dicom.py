@@ -6,7 +6,7 @@ import pathlib
 import nibabel as nb
 import numpy as np
 from copy import deepcopy
-from dcmq import consumer_loop, publish_nifti, publish_nifti_study, publish_dcm_series, fix_meta_info, publish_dcm
+from pydcmq import consumer_loop, publish_nifti, publish_nifti_study, publish_dcm_series, fix_meta_info, publish_dcm
 
 def nii2dicom(ni, ds, rescale=False, windowing=False, name=""):
     if len(ni.shape) == 3:
