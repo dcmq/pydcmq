@@ -7,7 +7,6 @@ verify_ssl = true
 
 [packages]
 scipy = "*"
-nibabel = "*"
 numpy = "*"
 pydcmq = {editable = true,path = "./../.."}
 

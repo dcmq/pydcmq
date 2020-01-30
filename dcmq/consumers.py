@@ -17,7 +17,7 @@ async def async_consumer(server, queue, methods, dcmhandler):
 
 
     async def handle_msg(msg: IncomingMessage):
-        print(f"dcmq: got message {msg}")
+        print(f"dcmq: got message with routing key {msg.routing_key} and uri {msg.headers['uri']}")
         with msg.process(requeue = True):
             ds = datasetFromBinary(msg.body)
             uri = msg.headers["uri"]

@@ -80,26 +80,23 @@ def dataElementToValue(dataElement, datasetencoding, subvalue=None):
         return [datasetToJSON(subvalue, datasetencoding) for subvalue in value]
     return value.original_string
 
-def datasetToBinary(ds: Dataset):
+def fix_meta_info(ds):
     try:
         ds.file_meta
     except:
         meta = Dataset()
         meta.ImplementationClassUID = PYNETDICOM_IMPLEMENTATION_UID
         meta.ImplementationVersionName = PYNETDICOM_IMPLEMENTATION_VERSION
-        try:
-            meta.MediaStorageSOPClassUID = ds.SOPClassUID
-        except:
-            meta.MediaStorageSOPClassUID = '1.2.276.0.7230010.3.1.0.1'
-        try:
-            meta.MediaStorageSOPInstanceUID = ds.SOPInstanceUID
-        except:
-            meta.MediaStorageSOPInstanceUID = '1.2.276.0.7230010.3.1.4.8323329.10856.1560082132.76381'
+        meta.MediaStorageSOPClassUID = ds.SOPClassUID
+        meta.MediaStorageSOPInstanceUID = ds.SOPInstanceUID
         meta.TransferSyntaxUID = "1.2.840.10008.1.2.1"
         ds.file_meta = meta
         ds.is_little_endian = True
         ds.is_implicit_VR = False
         ds.fix_meta_info()
+
+def datasetToBinary(ds: Dataset):
+    fix_meta_info(ds)
 
     with DicomBytesIO() as dcmfile:
         try:

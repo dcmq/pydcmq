@@ -13,6 +13,7 @@ async def publish_dcm(channel, ds, uri):
         ),
         routing_key="stored.instance"
     )
+    print(f"dcmq: published dicom instance {uri}")
 
 async def publish_dcm_series(channel, ds, uri):
     dicom_exchange = await channel.declare_exchange(
@@ -25,6 +26,7 @@ async def publish_dcm_series(channel, ds, uri):
         ),
         routing_key="stored.series"
     )
+    print(f"dcmq: published dicom series {uri}")
 
 async def publish_nifti(channel, ds, uri):
     dicom_exchange = await channel.declare_exchange(

@@ -1,15 +1,14 @@
 import asyncio
-from pydicom import dcmread, dcmwrite
+from pydicom import dcmread, dcmwrite, Dataset
+from pydicom.tag import Tag
 import os 
 import pathlib
 import nibabel as nb
 import numpy as np
 from copy import deepcopy
-from dcmq import consumer_loop, publish_nifti, publish_nifti_study, publish_dcm_series
+from dcmq import consumer_loop, publish_nifti, publish_nifti_study, publish_dcm_series, fix_meta_info, publish_dcm
 
 def nii2dicom(ni, ds, rescale=False, windowing=False, name=""):
-    if not "DERIVED" in ds.ImageType: #only convert derived data
-        return
     if len(ni.shape) == 3:
         I,J,K = ni.shape
         T=1
@@ -50,15 +49,16 @@ def nii2dicom(ni, ds, rescale=False, windowing=False, name=""):
     out_dcms = []
     for k in range(K):
         for t in range(T):
-            d = deepcopy(ds)
-            oldimagetype = d.ImageType
-            oldimagetype[0] = "DERIVED"
-            oldimagetype[1] = "SECONDARY"
-            d.ImageType = oldimagetype
-            d.SOPInstanceUID += "." + str(k) + "." + str(t)
-            d.file_meta.MediaStorageSOPInstanceUID = d.SOPInstanceUID
-            d.SeriesInstanceUID += name
-            d.SeriesDescription += " " + name
+            d = Dataset()
+            for elem in ds:
+                if elem.tag.group in [0x8, 0x10, 0x18, 0x20, 0x28, 0x32, 0x40]:
+                    d[elem.tag] = deepcopy(elem)
+            d.SOPClassUID = ds.SOPClassUID
+            d.ImageType = ["DERIVED","SECONDARY"]
+            d.SOPInstanceUID = ds.SOPInstanceUID + "." + str(k) + "." + str(t)
+            d.SeriesInstanceUID = ds.SeriesInstanceUID + name
+            d.SeriesDescription = ds.SeriesDescription + " " + name
+            d.StudyInstanceUID = ds.StudyInstanceUID
             d.PixelSpacing = pixel_spacing
             d.SpacingBetweenSlices = slice_spacing
             d.SliceThickness = slice_thickness
@@ -70,16 +70,13 @@ def nii2dicom(ni, ds, rescale=False, windowing=False, name=""):
             d.InstanceNumber = k
             d.AcquisitionNumber = t
             if len(ni.shape) == 3:
-                d.PixelData = np.flip(uintVOL[:,:,k]).T.copy(order='C')
+                d.PixelData = np.flip(uintVOL[:,:,k]).T.copy(order='C').tobytes()
             else:
-                d.PixelData = np.flip(uintVOL[:,:,k,t]).T.copy(order='C')
+                d.PixelData = np.flip(uintVOL[:,:,k,t]).T.copy(order='C').tobytes()
             #d.Pixel Data = transpose(uintVOL[end:-1:1,end:-1:1,k,t])        # flip from RAS to LPS
             d.BitsAllocated = 16
             d.BitsStored = 16
             d.HighBit = 15
-            tag = ds.data_element("OtherPatientIDs").tag
-            del d.SmallestImagePixelValue
-            del d.LargestImagePixelValue
             d.PixelRepresentation = 0
             if windowing:
                 d.WindowCenter = meanvol
@@ -91,18 +88,25 @@ def nii2dicom(ni, ds, rescale=False, windowing=False, name=""):
             else:
                 d.RescaleIntercept = scl_inter
                 d.RescaleSlope = scl_slope
+            fix_meta_info(d)
             out_dcms.append(d)
     return out_dcms
 
 async def dcmhandler(channel, ds, uri):
+    if not Tag("ImageType") in ds or not "DERIVED" in ds.ImageType: #only convert derived data
+        print(f"dicom2nii: {uri} is not a derived image")
+        return
     print(f"nii2dicom: converting {uri}")
     ni = nb.load(uri)
     dicoms = nii2dicom(ni, ds, name=".13.8.8") #numbers for 'nii'
-    outdir = f"{os.environ['HOME']}/.dimseweb/derived/{ds.StudyInstanceUID}/{ds.SeriesInstanceUID}"
+    refds = dicoms[0]
+    outdir = f"{os.environ['HOME']}/.dimseweb/derived/{refds.StudyInstanceUID}/{refds.SeriesInstanceUID}"
     pathlib.Path(outdir).mkdir(parents=True, exist_ok=True)
     for dcm in dicoms:
-        dcmwrite(outdir + "/" + dcm.SOPInstanceUID, dcm)
-    await publish_dcm_series(channel, ds, outdir)
+        filepath = outdir + "/" + dcm.SOPInstanceUID
+        dcmwrite(filepath, dcm)
+        await publish_dcm(channel, dcm, filepath)
+    await publish_dcm_series(channel, refds, outdir)
         
 if __name__ == '__main__':
     consumer_loop(
