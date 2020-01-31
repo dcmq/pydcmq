@@ -17,6 +17,7 @@ async def dcmhandler(channel, ds, uri):
     print(f"dicom2nii: converting {uri}")
     outdir = f"{os.environ['HOME']}/.dimseweb/nii/{ds.StudyInstanceUID}"
     pathlib.Path(outdir).mkdir(parents=True, exist_ok=True)
+    count = 0
     with os.scandir(uri) as it: 
         for series in it: 
             if series.is_dir():
@@ -35,8 +36,10 @@ async def dcmhandler(channel, ds, uri):
                 except Exception as e:
                     print(f"dicom2nii: error converting {series.name}: {e}")
                     continue
+                count += 1
                 await publish_nifti(channel, refds, outfile)
-    await publish_nifti_study(channel, ds, outdir)
+    if count>0:
+        await publish_nifti_study(channel, ds, outdir)
         
 if __name__ == '__main__':
     consumer_loop(

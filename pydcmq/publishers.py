@@ -1,4 +1,5 @@
 import asyncio
+import pydicom
 from aio_pika import IncomingMessage, Message, ExchangeType, connect_robust
 from .util import datasetToBinary, writeFile
 
@@ -68,28 +69,25 @@ async def publish_nifti_study(channel, ds, uri):
     print(f"dcmq: published nifti study {uri}")
 
 
-async def async_publish(server, filedir):
+async def async_publish_study(server, generator):
     loop = asyncio.get_running_loop()
     connection = await connect_robust(server, loop=loop)
-    print(f"dcmq: connected to {server}")
-    channel = await connection.channel()
-    dicom_exchange = await channel.declare_exchange(
-        'dicom', ExchangeType.TOPIC
-    )
-    filepath = await writeFile(ds, data=filedata)
-    await dicom_exchange.publish(
-        aio_pika.Message(
-            body=smalldata,
-            headers={"uri": filepath}
-        ),
-        routing_key="stored.instance"
-    )
+    async with connection:
+        print(f"dcmq: connected to {server}")
+        channel = await connection.channel()
+        dicom_exchange = await channel.declare_exchange(
+            'dicom', ExchangeType.TOPIC
+        )
+        for (ds, uri) in generator:
+            await publish_dcm(channel, ds, str(uri))
+        await publish_dcm_study(channel, ds, str(uri.parents[1]))
 
-def publish(server, filedir):
+def publish_study_generator(server, generator):
     loop = asyncio.new_event_loop()
     loop.run_until_complete(
-        async_publish( 
+        async_publish_study( 
             server=server,
-            filedir=filedir
+            generator=generator
         )
     )
+    loop.close()

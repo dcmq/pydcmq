@@ -6,7 +6,7 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-pydicom = "*"
+pydicom = {editable = true,path = "./../../pydicom"}
 pynetdicom = "*"
 dicom2nifti = "*"
 aiohttp = "*"

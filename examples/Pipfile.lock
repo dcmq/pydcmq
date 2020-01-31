@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "09591bef2afe2d72ae67fd80cc2bd02f9e3a9d2a32b17f59472318f4a2cbc686"
+            "sha256": "fb35765c63b7f64c0ba279b610a0856136daed6f1a2cc9e7f988d50ed2e0a5a3"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -157,12 +157,8 @@
             "path": "./.."
         },
         "pydicom": {
-            "hashes": [
-                "sha256:1490b78152f275daa3058ae661a5dc720d8e99d17ab7dd62862beb5e87a200e2",
-                "sha256:881fe64316f1dbc137afec73df621a2ffa8b288b3ceb3cc639e75603cd38244e"
-            ],
-            "index": "pypi",
-            "version": "==1.4.1"
+            "editable": true,
+            "path": "./../../pydicom"
         },
         "pynetdicom": {
             "hashes": [

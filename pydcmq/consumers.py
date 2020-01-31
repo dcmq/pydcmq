@@ -18,11 +18,16 @@ async def async_consumer(server, queue, methods, dcmhandler):
 
     async def handle_msg(msg: IncomingMessage):
         print(f"dcmq: got message with routing key {msg.routing_key} and uri {msg.headers['uri']}")
-        with msg.process(requeue = True):
-            ds = datasetFromBinary(msg.body)
-            uri = msg.headers["uri"]
-            if ds != None:
+        ds = datasetFromBinary(msg.body)
+        uri = msg.headers["uri"]
+        if ds != None:
+            try:
                 await dcmhandler(channel, ds, uri)
+                msg.ack()
+            except Exception as e:
+                msg.reject(requeue=True)
+                raise(e)
+                exit(1)
 
     print(f"dcmq: awaiting messages")
     await queue.consume(handle_msg)
