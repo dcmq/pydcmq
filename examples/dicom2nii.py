@@ -11,7 +11,7 @@ settings.disable_validate_orthogonal()
 settings.disable_validate_slice_increment()
 settings.enable_resampling()
 settings.set_resample_spline_interpolation_order(1)
-settings.set_resample_padding(-1000)
+settings.set_resample_padding(-1024)
 
 async def dcmhandler(channel, ds, uri):
     print(f"dicom2nii: converting {uri}")
@@ -29,10 +29,11 @@ async def dcmhandler(channel, ds, uri):
                 refds = dcmread(os.path.join(uri, series.name, dcmfilename))
                 if not Tag("ImageType") in refds or not "PRIMARY" in refds.ImageType: #only convert primary data
                     print(f"dicom2nii: {os.path.join(uri, series.name)} is not a primary image")
-                    return
+                    continue
                 outfile = os.path.join(outdir, refds.SeriesInstanceUID + ".nii")
                 try:
-                    dicom2nifti.dicom_series_to_nifti(series, outfile, reorient_nifti=True)
+                    indir = os.path.join(uri, series.name)
+                    dicom2nifti.dicom_series_to_nifti(indir, outfile, reorient_nifti=True)
                 except Exception as e:
                     print(f"dicom2nii: error converting {series.name}: {e}")
                     continue

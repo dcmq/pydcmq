@@ -69,6 +69,7 @@ async def dcmhandler(channel, ds, uri):
     oldimagetype = ds.ImageType
     oldimagetype[0] = "DERIVED"
     oldimagetype[1] = "SECONDARY"
+    oldimagetype[2] = "RESAMPLED"
     ds.ImageType = oldimagetype
     await publish_nifti(channel, ds, str(out))
         

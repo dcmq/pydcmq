@@ -8,7 +8,7 @@ import numpy as np
 from copy import deepcopy
 from pydcmq import consumer_loop, publish_nifti, publish_nifti_study, publish_dcm_series, fix_meta_info, publish_dcm
 
-def nii2dicom(ni, ds, rescale=False, windowing=False, name=""):
+def nii2dicom(ni, ds, rescale=False, windowing=False, name="", nameid=""):
     if len(ni.shape) == 3:
         I,J,K = ni.shape
         T=1
@@ -53,12 +53,10 @@ def nii2dicom(ni, ds, rescale=False, windowing=False, name=""):
             for elem in ds:
                 if elem.tag.group in [0x8, 0x10, 0x18, 0x20, 0x28, 0x32, 0x40]:
                     d[elem.tag] = deepcopy(elem)
-            d.SOPClassUID = ds.SOPClassUID
-            d.ImageType = ["DERIVED","SECONDARY"]
+            fix_meta_info(d)
             d.SOPInstanceUID = ds.SOPInstanceUID + "." + str(k) + "." + str(t)
-            d.SeriesInstanceUID = ds.SeriesInstanceUID + name
+            d.SeriesInstanceUID = ds.SeriesInstanceUID + nameid
             d.SeriesDescription = ds.SeriesDescription + " " + name
-            d.StudyInstanceUID = ds.StudyInstanceUID
             d.PixelSpacing = pixel_spacing
             d.SpacingBetweenSlices = slice_spacing
             d.SliceThickness = slice_thickness
@@ -93,18 +91,18 @@ def nii2dicom(ni, ds, rescale=False, windowing=False, name=""):
     return out_dcms
 
 async def dcmhandler(channel, ds, uri):
-    if not Tag("ImageType") in ds or not "DERIVED" in ds.ImageType: #only convert derived data
-        print(f"dicom2nii: {uri} is not a derived image")
+    if not Tag("ImageType") in ds or not "RESAMPLED" in ds.ImageType: #only convert resampled data
+        print(f"dicom2nii: {uri} is not a resampled image")
         return
     print(f"nii2dicom: converting {uri}")
     ni = nb.load(uri)
-    dicoms = nii2dicom(ni, ds, name=".13.8.8") #numbers for 'nii'
+    dicoms = nii2dicom(ni, ds, name="NIfTI", nameid=".13.8.8") #numbers for 'nii'
     refds = dicoms[0]
     outdir = f"{os.environ['HOME']}/.dimseweb/derived/{refds.StudyInstanceUID}/{refds.SeriesInstanceUID}"
     pathlib.Path(outdir).mkdir(parents=True, exist_ok=True)
     for dcm in dicoms:
         filepath = outdir + "/" + dcm.SOPInstanceUID
-        dcmwrite(filepath, dcm)
+        dcmwrite(filepath, dcm, write_like_original=False)
         await publish_dcm(channel, dcm, filepath)
     await publish_dcm_series(channel, refds, outdir)
         
