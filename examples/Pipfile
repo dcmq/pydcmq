@@ -8,7 +8,7 @@ verify_ssl = true
 [packages]
 pydicom = "*"
 pynetdicom = "*"
-dicom2nifti = "*"
+dicom2nifti = {editable = true,git = "https://github.com/vsaase/dicom2nifti",ref = "allow_dcmdjpeg"}
 aiohttp = "*"
 pydcmq = {editable = true,path = "./.."}
 

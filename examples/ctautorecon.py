@@ -18,7 +18,8 @@ def isthinheadct(d):
     if d.SeriesDescription.startswith("Head  0.75") or \
         d.SeriesDescription.startswith("HeadSeq  1.2") or \
         d.SeriesDescription.startswith("Headseq  1.2") or \
-        d.SeriesDescription.startswith("Head  1.0"):
+        d.SeriesDescription.startswith("Head  1.0") or \
+        d.SeriesDescription.startswith("Head  1.5"):
         return True
     return False
 

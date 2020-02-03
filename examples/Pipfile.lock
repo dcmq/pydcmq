@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "09591bef2afe2d72ae67fd80cc2bd02f9e3a9d2a32b17f59472318f4a2cbc686"
+            "sha256": "2cc59d146b10a0580959a0be0cc04b8757b384d3b282cb5a7c0ae10ccdb0dbee"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -77,11 +77,9 @@
             "version": "==3.0.4"
         },
         "dicom2nifti": {
-            "hashes": [
-                "sha256:75d53b1c0ed7b7e8bd73c05b1410171236d6043805f1e2d87eb852b5377f1790"
-            ],
-            "index": "pypi",
-            "version": "==2.2.2"
+            "editable": true,
+            "git": "https://github.com/vsaase/dicom2nifti",
+            "ref": "9653f3fe827e3bd2fc1bff1509269fb4fe243bc1"
         },
         "idna": {
             "hashes": [
