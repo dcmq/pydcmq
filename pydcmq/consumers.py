@@ -34,6 +34,7 @@ async def async_consumer(server, queue, methods, dcmhandler):
 
 def consumer_loop(server, queue, methods, dcmhandler):
     loop = asyncio.new_event_loop()
+    asyncio.get_child_watcher().attach_loop(loop)
     loop.create_task(
         async_consumer( 
             server=server,

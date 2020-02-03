@@ -23,6 +23,22 @@ def isthinheadct(d):
         return True
     return False
 
+async def run(cmd):
+    loop = asyncio.get_running_loop()
+    proc = await asyncio.create_subprocess_shell(
+        cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+        loop=loop)
+
+    stdout, stderr = await proc.communicate()
+
+    print(f'[{cmd!r} exited with {proc.returncode}]')
+    if stdout:
+        print(f'[stdout]\n{stdout.decode()}')
+    if stderr:
+        print(f'[stderr]\n{stderr.decode()}')
+
 def antsAffineToOrthogonal(infilename, outfilename):
     m = loadmat(infilename)
     affine = np.reshape(m["AffineTransform_double_3_3"][:9,0], (3,3))
@@ -56,14 +72,14 @@ async def dcmhandler(channel, ds, uri):
         ct = uri
         cmd = f"antsRegistration --dimensionality 3 --output {path}/ct2mni --interpolation Linear --winsorize-image-intensities \[0.005,0.995\] --use-histogram-matching 1 --initial-moving-transform \[{mni},{ct},1\] --transform Rigid\[0.1\] --metric MI\[{mni},{ct},1,32,Regular,0.25\] --convergence \[1000x500x250,1e-6,10\] --shrink-factors 8x4x2 --smoothing-sigmas 3x2x1vox --transform Affine\[0.1\] --metric MI\[{mni},{ct},1,32,Regular,0.25\] --convergence \[1000x500x250x100,1e-6,10\] --shrink-factors 8x4x2x1 --smoothing-sigmas 3x2x1x0vox -v"
         print(cmd)
-        os.system(cmd)
+        await run(cmd) #os.system(cmd)
         ct2mni = path / "ct2mni0GenericAffine.mat"
         ct2mni_orthogonal = path / "ct2mni0GenericOrthogonal.mat"
         antsAffineToOrthogonal(ct2mni, ct2mni_orthogonal)
         out = niidir / (ds.SeriesInstanceUID + "MNI.nii.gz")
         cmd = f"antsApplyTransforms -i {ct} -r {mni_hd} -o {out} -t {ct2mni_orthogonal} --interpolation Linear -v -f -1024"
         print(cmd)
-        os.system(cmd)
+        await run(cmd) #os.system(cmd)
     print(f"ctautorecon: finished converting {uri}")
     ds.SeriesInstanceUID += ".12.13.8" #numeric code for MNI
     ds.SeriesDescription += " " + "MNI"

@@ -1,5 +1,6 @@
 from pydicom.uid import ExplicitVRLittleEndian, ImplicitVRLittleEndian
 from pynetdicom import (
+    AE,
     StoragePresentationContexts,
 )
 from pydicom.uid import (
