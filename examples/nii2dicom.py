@@ -1,6 +1,7 @@
 import asyncio
 from pydicom import dcmread, dcmwrite, Dataset
 from pydicom.tag import Tag
+from pydicom.uid import generate_uid
 import os 
 import pathlib
 import nibabel as nb
@@ -8,7 +9,7 @@ import numpy as np
 from copy import deepcopy
 from pydcmq import consumer_loop, publish_nifti, publish_nifti_study, publish_dcm_series, fix_meta_info, publish_dcm
 
-def nii2dicom(ni, ds, rescale=False, windowing=False, name="", nameid=""):
+def nii2dicom(ni, ds, rescale=False, windowing=False, nameid=""):
     if len(ni.shape) == 3:
         I,J,K = ni.shape
         T=1
@@ -54,9 +55,8 @@ def nii2dicom(ni, ds, rescale=False, windowing=False, name="", nameid=""):
                 if elem.tag.group in [0x8, 0x10, 0x18, 0x20, 0x28, 0x32, 0x40]:
                     d[elem.tag] = deepcopy(elem)
             fix_meta_info(d)
-            d.SOPInstanceUID = ds.SOPInstanceUID + "." + str(k) + "." + str(t)
-            d.SeriesInstanceUID = ds.SeriesInstanceUID + nameid
-            d.SeriesDescription = ds.SeriesDescription + " " + name
+            d.SOPInstanceUID = generate_uid()
+            d.SeriesInstanceUID = generate_uid(entropy_srcs=[d.SeriesInstanceUID, d.SeriesDescription])
             d.PixelSpacing = pixel_spacing
             d.SpacingBetweenSlices = slice_spacing
             d.SliceThickness = slice_thickness
@@ -92,11 +92,11 @@ def nii2dicom(ni, ds, rescale=False, windowing=False, name="", nameid=""):
 
 async def dcmhandler(channel, ds, uri):
     if not Tag("ImageType") in ds or not "RESAMPLED" in ds.ImageType: #only convert resampled data
-        print(f"dicom2nii: {uri} is not a resampled image")
+        print(f"dicom2nii: {uri} ({ds.SeriesDescription}) is not a resampled image")
         return
     print(f"nii2dicom: converting {uri}")
     ni = nb.load(uri)
-    dicoms = nii2dicom(ni, ds, name="NIfTI", nameid=".13.8.8") #numbers for 'nii'
+    dicoms = nii2dicom(ni, ds, nameid=".13.8.8") #numbers for 'nii'
     refds = dicoms[0]
     outdir = f"{os.environ['HOME']}/.dimseweb/derived/{refds.StudyInstanceUID}/{refds.SeriesInstanceUID}"
     pathlib.Path(outdir).mkdir(parents=True, exist_ok=True)

@@ -13,13 +13,9 @@ from pydcmq import consumer_loop, publish_nifti, publish_nifti_study, publish_dc
 localdir = Path(os.path.dirname(os.path.realpath(__file__)))
 
 def isthinheadct(d):
-    if not "SeriesDescription" in d:
+    if not "SliceThickness" in d:
         return False
-    if d.SeriesDescription.startswith("Head  0.75") or \
-        d.SeriesDescription.startswith("HeadSeq  1.2") or \
-        d.SeriesDescription.startswith("Headseq  1.2") or \
-        d.SeriesDescription.startswith("Head  1.0") or \
-        d.SeriesDescription.startswith("Head  1.5"):
+    if d.SliceThickness < 2.0 and d.Modality == "CT":
         return True
     return False
 
@@ -57,12 +53,12 @@ def antsAffineToOrthogonal(infilename, outfilename):
 
 async def dcmhandler(channel, ds, uri):
     if not Tag("ImageType") in ds or not "PRIMARY" in ds.ImageType: #only convert primary data
-        print(f"ctautorecon: {uri} is not a primary image")
+        print(f"ctautorecon: {uri} ({ds.SeriesDescription}) is not a primary image")
         return
     if not isthinheadct(ds):
-        print(f"ctautorecon: {uri} is not for autorecon")
+        print(f"ctautorecon: {uri} ({ds.SeriesDescription}) is not for autorecon")
         return
-    print(f"ctautorecon: converting {uri}")
+    print(f"ctautorecon: converting {uri} ({ds.SeriesDescription})")
     niidir = Path.home() / ".dimseweb" / "nii" / ds.StudyInstanceUID
     with tempfile.TemporaryDirectory() as tempdir:
         path = Path(tempdir)
@@ -80,8 +76,7 @@ async def dcmhandler(channel, ds, uri):
         cmd = f"antsApplyTransforms -i {ct} -r {mni_hd} -o {out} -t {ct2mni_orthogonal} --interpolation Linear -v -f -1024"
         print(cmd)
         await run(cmd) #os.system(cmd)
-    print(f"ctautorecon: finished converting {uri}")
-    ds.SeriesInstanceUID += ".12.13.8" #numeric code for MNI
+    print(f"ctautorecon: finished converting {uri} ({ds.SeriesDescription})")
     ds.SeriesDescription += " " + "MNI"
     oldimagetype = ds.ImageType
     oldimagetype[0] = "DERIVED"

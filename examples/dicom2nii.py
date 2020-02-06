@@ -14,11 +14,11 @@ settings.set_resample_spline_interpolation_order(1)
 settings.set_resample_padding(-1024)
 
 async def dcmhandler(channel, ds, uri):
-    print(f"dicom2nii: converting {uri}")
+    print(f"dicom2nii: converting {uri} ({ds.SeriesDescription})")
     outdir = f"{os.environ['HOME']}/.dimseweb/nii/{ds.StudyInstanceUID}"
     pathlib.Path(outdir).mkdir(parents=True, exist_ok=True)
     count = 0
-    with os.scandir(uri) as it: 
+    with os.scandir(uri) as it:
         for series in it: 
             if series.is_dir():
                 with os.scandir(series) as it2: 
@@ -28,14 +28,14 @@ async def dcmhandler(channel, ds, uri):
                             break
                 refds = dcmread(os.path.join(uri, series.name, dcmfilename))
                 if not Tag("ImageType") in refds or not "PRIMARY" in refds.ImageType: #only convert primary data
-                    print(f"dicom2nii: {os.path.join(uri, series.name)} is not a primary image")
+                    print(f"dicom2nii: {os.path.join(uri, series.name)} ({refds.SeriesDescription}) is not a primary image")
                     continue
                 outfile = os.path.join(outdir, refds.SeriesInstanceUID + ".nii")
                 try:
                     indir = os.path.join(uri, series.name)
                     dicom2nifti.dicom_series_to_nifti(indir, outfile, reorient_nifti=True)
                 except Exception as e:
-                    print(f"dicom2nii: error converting {series.name}: {e}")
+                    print(f"dicom2nii: error converting {series.name} ({refds.SeriesDescription}): {e}")
                     continue
                 count += 1
                 await publish_nifti(channel, refds, outfile)
