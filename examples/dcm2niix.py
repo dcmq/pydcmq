@@ -1,17 +1,9 @@
 import asyncio
-import dicom2nifti
 from pydicom import dcmread
 from pydicom.tag import Tag
 import os 
 import pathlib
 from pydcmq import consumer_loop, publish_nifti, publish_nifti_study, async_consumer
-import dicom2nifti.settings as settings
-
-settings.disable_validate_orthogonal()
-settings.disable_validate_slice_increment()
-settings.enable_resampling()
-settings.set_resample_spline_interpolation_order(1)
-settings.set_resample_padding(-1024)
 
 async def dcmhandler(channel, ds, uri):
     print(f"dicom2nii: converting {uri} ({ds.SeriesDescription})")
@@ -28,16 +20,17 @@ async def dcmhandler(channel, ds, uri):
                             break
                 refds = dcmread(os.path.join(uri, series.name, dcmfilename))
                 if not Tag("ImageType") in refds or not "PRIMARY" in refds.ImageType: #only convert primary data
-                    print(f"dicom2nii: {os.path.join(uri, series.name)} ({refds.SeriesDescription}) is not a primary image")
+                    print(f"dcm2niix: {os.path.join(uri, series.name)} ({refds.SeriesDescription}) is not a primary image")
                     continue
                 outfile = os.path.join(outdir, refds.SeriesInstanceUID + ".nii")
                 try:
                     indir = os.path.join(uri, series.name)
-                    dicom2nifti.dicom_series_to_nifti(indir, outfile, reorient_nifti=True)
-                    count += 1
-                    await publish_nifti(channel, refds, outfile)
+                    ret = os.system(f"dcm2niix -f %j -o {outdir} -b n {indir}")
+                    if ret == 0:
+                        await publish_nifti(channel, refds, outfile)
+                        count += 1
                 except Exception as e:
-                    print(f"dicom2nii: error converting {series.name} ({refds.SeriesDescription}): {e}")
+                    print(f"dcm2niix: error converting {series.name} ({refds.SeriesDescription}): {e}")
                     continue
     if count>0:
         await publish_nifti_study(channel, ds, outdir)
