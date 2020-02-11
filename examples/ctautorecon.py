@@ -77,7 +77,7 @@ async def dcmhandler(channel, ds, uri):
         print(cmd)
         await run(cmd) #os.system(cmd)
     print(f"ctautorecon: finished converting {uri} ({ds.SeriesDescription})")
-    ds.SeriesDescription += " " + "MNI"
+    ds.SeriesDescription += " MNI"
     oldimagetype = ds.ImageType
     oldimagetype[0] = "DERIVED"
     oldimagetype[1] = "SECONDARY"
