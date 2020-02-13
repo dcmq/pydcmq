@@ -15,7 +15,11 @@ localdir = Path(os.path.dirname(os.path.realpath(__file__)))
 def isthinheadct(d):
     if not "SliceThickness" in d:
         return False
-    if d.SliceThickness < 2.0 and d.Modality == "CT":
+    if d.SliceThickness == None:
+        return False
+    if d.SeriesDescription.startswith("Topo"):
+        return False
+    if float(d.SliceThickness) < 2.0 and d.Modality == "CT":
         return True
     return False
 

@@ -25,10 +25,15 @@ async def dcmhandler(channel, ds, uri):
                 outfile = os.path.join(outdir, refds.SeriesInstanceUID + ".nii")
                 try:
                     indir = os.path.join(uri, series.name)
-                    ret = os.system(f"dcm2niix -f %j -o {outdir} -b n {indir}")
+                    ret = os.system(f"dcm2niix -f %j -o {outdir} -b n -m y -i y {indir}")
                     if ret == 0:
-                        await publish_nifti(channel, refds, outfile)
-                        count += 1
+                        if os.path.exists(os.path.join(outdir, refds.SeriesInstanceUID + "_Tilt_1.nii")):
+                            outfile = os.path.join(outdir, refds.SeriesInstanceUID + "_Tilt_1.nii")
+                        if os.path.exists(os.path.join(outdir, refds.SeriesInstanceUID + "_Tilt_Eq_1.nii")):
+                            outfile = os.path.join(outdir, refds.SeriesInstanceUID + "_Tilt_Eq_1.nii")
+                        if os.path.exists(outfile):
+                            await publish_nifti(channel, refds, outfile)
+                            count += 1
                 except Exception as e:
                     print(f"dcm2niix: error converting {series.name} ({refds.SeriesDescription}): {e}")
                     continue

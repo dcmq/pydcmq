@@ -9,7 +9,7 @@ import numpy as np
 from copy import deepcopy
 from pydcmq import consumer_loop, publish_nifti, publish_nifti_study, publish_dcm_series, fix_meta_info, publish_dcm
 
-def nii2dicom(ni, ds, rescale=False, windowing=False, nameid=""):
+def nii2dicom(ni, ds):
     if len(ni.shape) == 3:
         I,J,K = ni.shape
         T=1
@@ -35,16 +35,14 @@ def nii2dicom(ni, ds, rescale=False, windowing=False, nameid=""):
     scl_slope = 1 if np.isnan(ni.header["scl_slope"]) else ni.header["scl_slope"]
     scl_inter = 0 if np.isnan(ni.header["scl_inter"]) else ni.header["scl_inter"]
     raw = ni.get_fdata()
-    meanvol = np.mean(raw)
-    stdvol = np.std(raw)
     minvol = np.min(raw)
     maxvol = np.max(raw)
-    if minvol < 0:
-        raw -= minvol
-        scl_inter += minvol * scl_slope
-    if maxvol > 65535: # 65535 = maximum of uint16
-        raw -= (maxvol - 65535)
-        scl_inter += (maxvol - 65535) * scl_slope
+    raw -= minvol
+    scl_inter += minvol * scl_slope
+    raw *= 65536 / (maxvol - minvol)
+    scl_slope *= (maxvol - minvol) / 65536
+    meanvol = np.mean(raw)
+    stdvol = np.std(raw)
     uintVOL = np.uint16(np.round(raw))
 
     out_dcms = []
@@ -76,16 +74,11 @@ def nii2dicom(ni, ds, rescale=False, windowing=False, nameid=""):
             d.BitsStored = 16
             d.HighBit = 15
             d.PixelRepresentation = 0
-            if windowing:
-                d.WindowCenter = meanvol
-                d.WindowWidth = 4*stdvol
-                d.WindowCenterWidthExplanation = "LINEAR"
-            if rescale:
-                d.RescaleIntercept = minvol
-                d.RescaleSlope = (maxvol - minvol)/65536
-            else:
-                d.RescaleIntercept = scl_inter
-                d.RescaleSlope = scl_slope
+            d.WindowCenter = meanvol + scl_inter
+            d.WindowWidth = 4*stdvol * scl_slope
+            d.WindowCenterWidthExplanation = "LINEAR"
+            d.RescaleIntercept = scl_inter
+            d.RescaleSlope = scl_slope
             fix_meta_info(d)
             out_dcms.append(d)
     return out_dcms
@@ -96,7 +89,7 @@ async def dcmhandler(channel, ds, uri):
         return
     print(f"nii2dicom: converting {uri}")
     ni = nb.load(uri)
-    dicoms = nii2dicom(ni, ds, nameid=".13.8.8") #numbers for 'nii'
+    dicoms = nii2dicom(ni, ds)
     refds = dicoms[0]
     outdir = f"{os.environ['HOME']}/.dimseweb/derived/{refds.StudyInstanceUID}/{refds.SeriesInstanceUID}"
     pathlib.Path(outdir).mkdir(parents=True, exist_ok=True)
