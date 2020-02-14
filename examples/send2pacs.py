@@ -8,20 +8,6 @@ from pydicom.uid import (
     ExplicitVRBigEndian, DeflatedExplicitVRLittleEndian, 
     JPEGLossless
 )
-from pynetdicom.sop_class import (
-    StudyRootQueryRetrieveInformationModelFind,
-    StudyRootQueryRetrieveInformationModelGet,
-    StudyRootQueryRetrieveInformationModelMove,
-    PatientRootQueryRetrieveInformationModelMove,
-    PatientRootQueryRetrieveInformationModelFind,
-    PatientRootQueryRetrieveInformationModelGet,
-    VerificationSOPClass,
-    CTImageStorage,
-    MRImageStorage,
-    BasicTextSRStorage,
-    EnhancedSRStorage,
-    SegmentationStorage
-)
 import pydicom
 from pydicom.uid import UID
 from pydicom import Dataset

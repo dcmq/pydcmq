@@ -41,8 +41,8 @@ def nii2dicom(ni, ds):
     scl_inter += minvol * scl_slope
     raw *= 65536 / (maxvol - minvol)
     scl_slope *= (maxvol - minvol) / 65536
-    meanvol = np.mean(raw)
-    stdvol = np.std(raw)
+    minval = scl_slope * np.min(raw) + scl_inter
+    maxval = scl_slope * np.max(raw) + scl_inter
     uintVOL = np.uint16(np.round(raw))
 
     out_dcms = []
@@ -56,6 +56,7 @@ def nii2dicom(ni, ds):
             d.SOPInstanceUID = generate_uid()
             d.SeriesInstanceUID = generate_uid(entropy_srcs=[d.SeriesInstanceUID, d.SeriesDescription])
             d.PixelSpacing = pixel_spacing
+            d.SeriesNumber += 1000
             d.SpacingBetweenSlices = slice_spacing
             d.SliceThickness = slice_thickness
             d.ImageOrientationPatient = list(orientation_dcm)
@@ -74,8 +75,8 @@ def nii2dicom(ni, ds):
             d.BitsStored = 16
             d.HighBit = 15
             d.PixelRepresentation = 0
-            d.WindowCenter = meanvol + scl_inter
-            d.WindowWidth = 4*stdvol * scl_slope
+            d.WindowCenter = (maxval + minval) / 2
+            d.WindowWidth = (maxval - minval)
             d.WindowCenterWidthExplanation = "LINEAR"
             d.RescaleIntercept = scl_inter
             d.RescaleSlope = scl_slope

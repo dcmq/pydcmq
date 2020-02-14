@@ -1,12 +1,14 @@
 import asyncio
 from pydicom import dcmread
 from pydicom.tag import Tag
+import dicom2nifti
 import os 
 import pathlib
 from pydcmq import consumer_loop, publish_nifti, publish_nifti_study, async_consumer
+import dicom2nifti.settings as settings
 
 async def dcmhandler(channel, ds, uri):
-    print(f"dicom2nii: converting {uri} ({ds.SeriesDescription})")
+    print(f"dcm2niix: converting {uri} ({ds.SeriesDescription})")
     outdir = f"{os.environ['HOME']}/.dimseweb/nii/{ds.StudyInstanceUID}"
     pathlib.Path(outdir).mkdir(parents=True, exist_ok=True)
     count = 0
@@ -25,7 +27,9 @@ async def dcmhandler(channel, ds, uri):
                 outfile = os.path.join(outdir, refds.SeriesInstanceUID + ".nii")
                 try:
                     indir = os.path.join(uri, series.name)
-                    ret = os.system(f"dcm2niix -f %j -o {outdir} -b n -m y -i y {indir}")
+                    cmd = f"dcm2niix -f %j -o {outdir} -b n -m y {indir}"
+                    print(cmd)
+                    ret = os.system(cmd)
                     if ret == 0:
                         if os.path.exists(os.path.join(outdir, refds.SeriesInstanceUID + "_Tilt_1.nii")):
                             outfile = os.path.join(outdir, refds.SeriesInstanceUID + "_Tilt_1.nii")
@@ -34,6 +38,14 @@ async def dcmhandler(channel, ds, uri):
                         if os.path.exists(outfile):
                             await publish_nifti(channel, refds, outfile)
                             count += 1
+                        else:
+                            print(f"dcm2niix: error converting {series.name} ({refds.SeriesDescription}): outfile not found")
+                    else:
+                        print(f"dcm2niix: error converting {series.name} ({refds.SeriesDescription}): exited with error code {ret}")
+                        print(f"dcm2niix: retrying with dicom2nifti")
+                        dicom2nifti.dicom_series_to_nifti(indir, outfile, reorient_nifti=True)
+                        count += 1
+                        await publish_nifti(channel, refds, outfile)
                 except Exception as e:
                     print(f"dcm2niix: error converting {series.name} ({refds.SeriesDescription}): {e}")
                     continue
