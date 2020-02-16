@@ -17,8 +17,9 @@ def isthinheadct(d):
         return False
     if d.SliceThickness == None:
         return False
-    if d.SeriesDescription.startswith("Topo"):
-        return False
+    for s in ["Topo", "Angio", "Neck", "Thorax"]:
+        if s in d.SeriesDescription:
+            return False
     if float(d.SliceThickness) < 2.0 and d.Modality == "CT":
         return True
     return False
@@ -66,7 +67,7 @@ async def dcmhandler(channel, ds, uri):
     niidir = Path.home() / ".dimseweb" / "nii" / ds.StudyInstanceUID
     with tempfile.TemporaryDirectory() as tempdir:
         path = Path(tempdir)
-        os.environ["ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS"] = "4"
+        os.environ["ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS"] = "1"
         mni = localdir / "scct_unsmooth.nii.gz"
         mni_hd = localdir / "scct_unsmooth_0.5_pad10.nii.gz"
         ct = uri

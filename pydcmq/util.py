@@ -14,6 +14,14 @@ from pynetdicom import (
     PYNETDICOM_IMPLEMENTATION_VERSION
 )
 
+def getFilename(ds):
+    filename = str(Path.home()) + "/.dimseweb/master/" + ds.StudyInstanceUID
+    if "SeriesInstanceUID" in ds and len(ds.SeriesInstanceUID)>0:
+        filename += "/" + ds.SeriesInstanceUID
+    if "SOPInstanceUID" in ds and len(ds.SOPInstanceUID)>0:
+        filename += "/" + ds.SOPInstanceUID
+    return filename
+
 async def readFileBinary(filename, ds):
     async with aiofiles.open(filename, mode='rb') as f:
         return await f.read()
@@ -50,7 +58,7 @@ def filterBinary(data):
         except Exception as e: 
             print(e)
     smalldata = datasetToBinary(ds)
-    return smalldata
+    return smalldata, ds
 
 def dataElementToValue(dataElement, datasetencoding, subvalue=None):
     if subvalue != None:

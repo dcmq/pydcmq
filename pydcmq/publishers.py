@@ -3,18 +3,33 @@ import pydicom
 from aio_pika import IncomingMessage, Message, ExchangeType, connect_robust
 from .util import datasetToBinary, writeFile
 
-async def publish_dcm(channel, ds, uri):
+async def publish_dcm(channel, ds, uri, data=None):
     dicom_exchange = await channel.declare_exchange(
         'dicom', ExchangeType.TOPIC
     )
+    if data == None:
+        data = datasetToBinary(ds)
     await dicom_exchange.publish(
         Message(
-            body=datasetToBinary(ds),
+            body=data,
             headers={"uri": uri}
         ),
         routing_key="stored.instance"
     )
     print(f"dcmq: published dicom instance {uri}")
+
+async def publish_find_instance(channel, ds, reply_to):
+    dicom_exchange = await channel.declare_exchange(
+        'dicom', ExchangeType.TOPIC
+    )
+    await dicom_exchange.publish(
+        aio_pika.Message(
+            body=datasetToBinary(ds),
+            reply_to=reply_to
+        ),
+        routing_key="find.instances"
+    )
+    print(f"dcmq: published find instance request for study {ds.StudyInstanceUID}")
 
 async def publish_dcm_series(channel, ds, uri):
     dicom_exchange = await channel.declare_exchange(

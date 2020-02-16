@@ -18,10 +18,10 @@
     "default": {
         "aio-pika": {
             "hashes": [
-                "sha256:a5837277e53755078db3a9e8c45bbca605c8ba9ecba7a02d74a7a1779f444723",
-                "sha256:fa32e33b4b7d0804dcf439ae6ff24d2f0a83d1ba280ee9f555e647d71d394ff5"
+                "sha256:53a6bc921153c8c05eb264e588b3038fe6208ce32540562443eeef503bdfc46b",
+                "sha256:58e0b86d537430fe12febc2a3c7f458e9722257c7912be83ea8fa2ada382af2d"
             ],
-            "version": "==6.4.1"
+            "version": "==6.4.3"
         },
         "aiofiles": {
             "hashes": [
