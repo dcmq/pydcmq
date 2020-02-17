@@ -8,7 +8,7 @@ async def async_consumer(server, queue, methods, dcmhandler):
     print(f"dcmq: connected to {server}")
     channel = await connection.channel()
     dicom_exchange = await channel.declare_exchange(
-        'dicom', ExchangeType.TOPIC
+        'amq.topic', ExchangeType.TOPIC, durable=True
     )
     queue = await channel.declare_queue(queue)
     for method in methods:

@@ -35,8 +35,9 @@ import asyncio
 import logging
 import socket
 import random
+import sys
 from pydicom.pixel_data_handlers import gdcm_handler, pillow_handler
-from pydcmq import consumer_loop, responder_loop, publish_nifti, publish_nifti_study, publish_dcm_series, publish_dcm, reply_dcm, reply_fin, reply_start
+from pydcmq import consumer_loop, responder_loop, publish_nifti, publish_nifti_study, publish_dcm_series, publish_dcm, reply_dcm, reply_fin, reply_start, publish_found_study
 
 logger = logging.getLogger('pynetdicom')
 logger.setLevel(logging.INFO)
@@ -125,12 +126,8 @@ def _cFindSeries(ds, limit = 0):
         ds3.StudyInstanceUID = identifier.StudyInstanceUID
         study_queries.append(ds3)
 
-    series_generators = []
     for query in study_queries:
-        series_generators.append(_cFind(query, limit=limit))
-
-    for series_generator in series_generators:
-        yield from series_generator
+        yield from _cFind(query, limit=limit)
 
 def _cFindInstances(ds, limit = 0):
     ds2 = deepcopy(ds)
@@ -154,24 +151,22 @@ def _cFindInstances(ds, limit = 0):
         ds3.QueryRetrieveLevel = 'IMAGE'
         series_queries.append(ds3)
 
-    instances_generators = []
     for query in series_queries:
-        instances_generators.append(_cFind(query, limit=limit))
-
-    for instance_generator in instances_generators:
-        yield from instance_generator
+        yield from _cFind(query, limit=limit)
         
 async def dcmhandler(channel, ds, uri, method, reply_to):
     await reply_start(channel, reply_to)
     retlist = []
     if method == 'find.studies':
-        retlist = _cFindStudy(ds, limit=0)
+        for ret in _cFindStudy(ds, limit=0):
+            await reply_dcm(channel, reply_to, ret, uri="")
+            await publish_found_study(channel, ret)
     elif method == 'find.series':
-        retlist = _cFindSeries(ds, limit=0)
+        for ret in _cFindSeries(ds, limit=0):
+            await reply_dcm(channel, reply_to, ret, uri="")
     elif method == 'find.instances':
-        retlist = _cFindInstances(ds, limit=0)
-    for ret in retlist:
-        await reply_dcm(channel, reply_to, ret, uri="")
+        for ret in _cFindInstances(ds, limit=0):
+            await reply_dcm(channel, reply_to, ret, uri="")
     await reply_fin(channel, reply_to)
 
 server_ip = "10.3.21.20"
@@ -180,11 +175,14 @@ server_port = 11112
 calling_ae = "RWSN225M"
 
 if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        server_ip, server_ae, server_port, calling_ae = sys.argv[1:]
+        server_port = int(server_port)
     responder_loop(
         server="amqp://guest:guest@127.0.0.1/",
         queue="dimse",
         methods=[
-            'find.*',
+            'find.#'
         ],
         dcmhandler=dcmhandler
     )

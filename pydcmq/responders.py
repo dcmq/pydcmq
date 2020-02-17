@@ -3,6 +3,8 @@ from aio_pika import IncomingMessage, Message, ExchangeType, connect_robust
 from .util import datasetFromBinary, datasetToBinary
 
 async def reply_dcm(channel, reply_to, ds, uri, data=None):
+    if reply_to == None:
+        return
     if data == None:
         data = datasetToBinary(ds)
     await channel.default_exchange.publish(
@@ -15,6 +17,8 @@ async def reply_dcm(channel, reply_to, ds, uri, data=None):
     print(f"dcmq: replied dicom instance {uri} to {reply_to}")
 
 async def reply_fin(channel, reply_to):
+    if reply_to == None:
+        return
     await channel.default_exchange.publish(
         Message(
             body=b'FIN',
@@ -24,6 +28,8 @@ async def reply_fin(channel, reply_to):
     print(f"dcmq: replied FIN to {reply_to}")
 
 async def reply_start(channel, reply_to):
+    if reply_to == None:
+        return
     await channel.default_exchange.publish(
         Message(
             body=b'START',
@@ -38,7 +44,7 @@ async def async_responder(server, queue, methods, dcmhandler):
     print(f"dcmq: connected to {server}")
     channel = await connection.channel()
     dicom_exchange = await channel.declare_exchange(
-        'dicom', ExchangeType.TOPIC
+        'amq.topic', ExchangeType.TOPIC, durable=True
     )
     queue = await channel.declare_queue(queue)
     for method in methods:

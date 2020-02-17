@@ -5,7 +5,7 @@ from .util import datasetToBinary, writeFile
 
 async def publish_dcm(channel, ds, uri, data=None):
     dicom_exchange = await channel.declare_exchange(
-        'dicom', ExchangeType.TOPIC
+        'amq.topic', ExchangeType.TOPIC, durable=True
     )
     if data == None:
         data = datasetToBinary(ds)
@@ -20,7 +20,7 @@ async def publish_dcm(channel, ds, uri, data=None):
 
 async def publish_find_instance(channel, ds, reply_to):
     dicom_exchange = await channel.declare_exchange(
-        'dicom', ExchangeType.TOPIC
+        'amq.topic', ExchangeType.TOPIC, durable=True
     )
     await dicom_exchange.publish(
         Message(
@@ -31,9 +31,21 @@ async def publish_find_instance(channel, ds, reply_to):
     )
     print(f"dcmq: published find instance request for study {ds.StudyInstanceUID}")
 
+async def publish_found_study(channel, ds):
+    dicom_exchange = await channel.declare_exchange(
+        'amq.topic', ExchangeType.TOPIC, durable=True
+    )
+    await dicom_exchange.publish(
+        Message(
+            body=datasetToBinary(ds),
+        ),
+        routing_key="found.study"
+    )
+    print(f"dcmq: published found.study for study {ds.StudyInstanceUID}")
+
 async def publish_dcm_series(channel, ds, uri):
     dicom_exchange = await channel.declare_exchange(
-        'dicom', ExchangeType.TOPIC
+        'amq.topic', ExchangeType.TOPIC, durable=True
     )
     await dicom_exchange.publish(
         Message(
@@ -46,7 +58,7 @@ async def publish_dcm_series(channel, ds, uri):
 
 async def publish_dcm_study(channel, ds, uri):
     dicom_exchange = await channel.declare_exchange(
-        'dicom', ExchangeType.TOPIC
+        'amq.topic', ExchangeType.TOPIC, durable=True
     )
     await dicom_exchange.publish(
         Message(
@@ -59,7 +71,7 @@ async def publish_dcm_study(channel, ds, uri):
 
 async def publish_nifti(channel, ds, uri):
     dicom_exchange = await channel.declare_exchange(
-        'dicom', ExchangeType.TOPIC
+        'amq.topic', ExchangeType.TOPIC, durable=True
     )
     await dicom_exchange.publish(
         Message(
@@ -72,7 +84,7 @@ async def publish_nifti(channel, ds, uri):
 
 async def publish_nifti_study(channel, ds, uri):
     dicom_exchange = await channel.declare_exchange(
-        'dicom', ExchangeType.TOPIC
+        'amq.topic', ExchangeType.TOPIC, durable=True
     )
     await dicom_exchange.publish(
         Message(
@@ -90,9 +102,6 @@ async def async_publish_study(server, generator):
     async with connection:
         print(f"dcmq: connected to {server}")
         channel = await connection.channel()
-        dicom_exchange = await channel.declare_exchange(
-            'dicom', ExchangeType.TOPIC
-        )
         for (ds, uri) in generator:
             await publish_dcm(channel, ds, str(uri))
         await publish_dcm_study(channel, ds, str(uri.parents[1]))
