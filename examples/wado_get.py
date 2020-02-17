@@ -37,7 +37,10 @@ import logging
 import socket
 import random
 from pydicom.pixel_data_handlers import gdcm_handler, pillow_handler
-from pydcmq import consumer_loop, responder_loop, publish_nifti, publish_nifti_study, publish_dcm_series, publish_dcm, publish_dcm_study,reply_dcm, publish_find_instance
+from pydcmq import consumer_loop, responder_loop, publish_nifti, 
+    publish_nifti_study, publish_dcm_series, publish_dcm, 
+    publish_dcm_study,reply_dcm, publish_find_instance,
+    reply_fin, reply_start
 
 logger = logging.getLogger('pynetdicom')
 logger.setLevel(logging.INFO)
@@ -75,9 +78,9 @@ async def get_instance(channel, ds, reply):
     filedata = await _wadoURIDownload(ds, endpoint)
     smalldata, newds = filterBinary(filedata)
     filepath = getFilename(newds)
-    await writeFile(filepath, ds, data=filedata)
+    await writeFile(filepath, newds, data=filedata)
     await publish_dcm(channel, newds, filepath, data=smalldata)
-    await reply_dcm(channel, reply, ds, filepath, data=smalldata)
+    await reply_dcm(channel, reply, newds, filepath, data=smalldata)
                 
                 
 async def get(channel, ds, reply):
@@ -87,10 +90,15 @@ async def get(channel, ds, reply):
     await publish_find_instance(channel, ds, queue.name)
     instances = []
     async with queue.iterator() as queue_iter:
+        repcount = 0
         async for message in queue_iter:
             async with message.process():
                 if message.body == b'FIN':
-                    break
+                    repcount -= 1
+                    if repcount == 0:
+                        break
+                elif message.body == b'START':
+                    repcount += 1
                 else:
                     newds = datasetFromBinary(message.body)
                     if newds != None:
@@ -107,18 +115,18 @@ async def get(channel, ds, reply):
     
 
 async def dcmhandler(channel, ds, uri, method, reply_to):
+    await reply_start(channel, reply_to)
     if method == 'get.study':
         await get(channel, ds, reply_to)
-        path = getFilename(ds)
-        await publish_dcm_study(channel, ds, path)
+        uri = getFilename(ds)
+        await publish_dcm_study(channel, ds, uri)
     elif method == 'get.series':
         await get(channel, ds, reply_to)
-        path = getFilename(ds)
-        await publish_dcm_series(channel, ds, path)
+        uri = getFilename(ds)
+        await publish_dcm_series(channel, ds, uri)
     elif method == 'get.instance':
         await get_instance(channel, ds, reply_to)
-    else:
-        return
+    await reply_fin(channel, reply_to)
 
 endpoint = "http://127.0.0.1:8080/dcm4chee-arc/aets/DCM4CHEE/wado"
 MAXTASKS = 50

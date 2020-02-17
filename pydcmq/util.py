@@ -48,7 +48,7 @@ async def readFile(filename):
     return ds
 
 def filterBinary(data):
-    ds = datasetFromBinary(data)
+    ds = datasetFromBinary(data, skipPixel = True)
     if ds == None:
         return b''
     for key in list(ds.keys()):
@@ -122,9 +122,9 @@ def datasetToBinary(ds: Dataset):
         dcmfile.seek(0)
         return dcmfile.read()
 
-def datasetFromBinary(data, specific_tags=None):
+def datasetFromBinary(data, specific_tags=None, skipPixel = False):
     try:
-        return dcmread(DicomBytesIO(data), specific_tags=specific_tags)
+        return dcmread(DicomBytesIO(data), specific_tags=specific_tags, stop_before_pixels = skipPixel)
     except Exception as e:
         print(e)
         #import IPython; IPython.embed()
