@@ -53,7 +53,7 @@ def filterBinary(data):
         return b''
     for key in list(ds.keys()):
         try:
-            if ds[key].VR in Dataset._BINARY_VR_VALUES:
+            if ds[key].VR in ['OW', 'OB', 'OD', 'OF', 'OL', 'UN', 'OB or OW', 'US or OW', 'US or SS or OW']:
                 del ds[key]
         except Exception as e: 
             print(e)
@@ -124,7 +124,7 @@ def datasetToBinary(ds: Dataset):
 
 def datasetFromBinary(data, specific_tags=None, skipPixel = False):
     try:
-        return dcmread(DicomBytesIO(data), specific_tags=specific_tags, stop_before_pixels = skipPixel)
+        return dcmread(DicomBytesIO(data), specific_tags=specific_tags, stop_before_pixels = skipPixel, force=True)
     except Exception as e:
         print(e)
         #import IPython; IPython.embed()
@@ -149,7 +149,7 @@ def datasetToJSON(ds : Dataset, datasetencoding = 'ISO_IR 6', filter_dataset = N
             continue
         if skipBinary:
             try:
-                if ds[key].VR in Dataset._BINARY_VR_VALUES: # skip vendor specific data
+                if ds[key].VR in ['OW', 'OB', 'OD', 'OF', 'OL', 'UN', 'OB or OW', 'US or OW', 'US or SS or OW']: # skip vendor specific data
                     continue
             except Exception as e:
                 print(e)

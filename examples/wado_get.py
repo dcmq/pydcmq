@@ -1,29 +1,8 @@
 from pydicom.uid import ExplicitVRLittleEndian, ImplicitVRLittleEndian
-from pynetdicom import (
-    AE, evt, build_role, debug_logger, 
-    StoragePresentationContexts,
-    VerificationPresentationContexts,
-    PYNETDICOM_IMPLEMENTATION_UID,
-    PYNETDICOM_IMPLEMENTATION_VERSION
-)
 from pydicom.uid import (
     ExplicitVRLittleEndian, ImplicitVRLittleEndian,
     ExplicitVRBigEndian, DeflatedExplicitVRLittleEndian, 
     JPEGLossless
-)
-from pynetdicom.sop_class import (
-    StudyRootQueryRetrieveInformationModelFind,
-    StudyRootQueryRetrieveInformationModelGet,
-    StudyRootQueryRetrieveInformationModelMove,
-    PatientRootQueryRetrieveInformationModelMove,
-    PatientRootQueryRetrieveInformationModelFind,
-    PatientRootQueryRetrieveInformationModelGet,
-    VerificationSOPClass,
-    CTImageStorage,
-    MRImageStorage,
-    BasicTextSRStorage,
-    EnhancedSRStorage,
-    SegmentationStorage
 )
 import pydicom
 from pydicom import Dataset
@@ -33,27 +12,15 @@ from copy import deepcopy
 import aiohttp 
 import urllib
 import asyncio
+import sys
 import logging
 import socket
 import random
 from pydicom.pixel_data_handlers import gdcm_handler, pillow_handler
-from pydcmq import consumer_loop, responder_loop, publish_nifti, 
-    publish_nifti_study, publish_dcm_series, publish_dcm, 
-    publish_dcm_study,reply_dcm, publish_find_instance,
+from pydcmq import consumer_loop, responder_loop, publish_nifti, \
+    publish_nifti_study, publish_dcm_series, publish_dcm, \
+    publish_dcm_study,reply_dcm, publish_find_instance,\
     reply_fin, reply_start
-
-logger = logging.getLogger('pynetdicom')
-logger.setLevel(logging.INFO)
-
-storageclasses = [MRImageStorage, BasicTextSRStorage, CTImageStorage, EnhancedSRStorage]
-
-transfer_syntax_full = [
-    ExplicitVRLittleEndian,
-    ImplicitVRLittleEndian,
-    DeflatedExplicitVRLittleEndian,
-    ExplicitVRBigEndian,
-    JPEGLossless
-]
 
 pydicom.config.pixel_data_handlers = [gdcm_handler, pillow_handler]
 
@@ -88,7 +55,6 @@ async def get(channel, ds, reply):
     current_task = 0
     queue = await channel.declare_queue(exclusive=True)
     await publish_find_instance(channel, ds, queue.name)
-    instances = []
     async with queue.iterator() as queue_iter:
         repcount = 0
         async for message in queue_iter:
@@ -97,19 +63,20 @@ async def get(channel, ds, reply):
                     repcount -= 1
                     if repcount == 0:
                         break
+                    continue
                 elif message.body == b'START':
                     repcount += 1
-                else:
-                    newds = datasetFromBinary(message.body)
-                    if newds != None:
-                        instances += [newds]
-    for instance in instances:
-        tasks.append(asyncio.create_task(get_instance(channel, instance, reply)))
-        # if too much open tasks, await them
-        if len(tasks) - current_task > MAXTASKS:
-            while current_task < len(tasks):
-                await tasks[current_task]
-                current_task += 1
+                    continue
+                
+                newds = datasetFromBinary(message.body)
+                if newds == None:
+                    continue
+                tasks.append(asyncio.create_task(get_instance(channel, newds, reply)))
+                # if too much open tasks, await them
+                if len(tasks) - current_task > MAXTASKS:
+                    while current_task < len(tasks):
+                        await tasks[current_task]
+                        current_task += 1
     for task in tasks[current_task:]:
         await task
     
@@ -132,9 +99,11 @@ endpoint = "http://127.0.0.1:8080/dcm4chee-arc/aets/DCM4CHEE/wado"
 MAXTASKS = 50
 
 if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        endpoint = sys.argv[1]
     responder_loop(
         server="amqp://guest:guest@127.0.0.1/",
-        queue="dimse",
+        queue="wado",
         methods=[
             'get.*'
         ],

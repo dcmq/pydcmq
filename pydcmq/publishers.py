@@ -23,7 +23,7 @@ async def publish_find_instance(channel, ds, reply_to):
         'dicom', ExchangeType.TOPIC
     )
     await dicom_exchange.publish(
-        aio_pika.Message(
+        Message(
             body=datasetToBinary(ds),
             reply_to=reply_to
         ),
