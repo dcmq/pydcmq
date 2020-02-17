@@ -201,10 +201,10 @@ async def dcmhandler(channel, ds, uri, method, reply_to):
         await reply_dcm(channel, reply_to, ret, uri="")
     await reply_fin(channel, reply_to)
 
-server_ip = "127.0.0.1"
-server_ae = "DCM4CHEE"
+server_ip = "10.3.21.20"
+server_ae = "RADWIPACS"
 server_port = 11112
-calling_ae = "PYNETDICOM"
+calling_ae = "RWSN225M"
 
 if __name__ == '__main__':
     responder_loop(

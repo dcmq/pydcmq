@@ -40,7 +40,9 @@ async def async_responder(server, queue, methods, dcmhandler):
     async def handle_msg(msg: IncomingMessage):
         print(f"dcmq: got message with routing key {msg.routing_key}, wants reply to {msg.reply_to}")
         ds = datasetFromBinary(msg.body)
-        uri = msg.headers["uri"]
+        uri = ""
+        if "uri" in msg.headers:
+            uri = msg.headers["uri"]
         if ds != None:
             try:
                 await dcmhandler(channel, ds, uri, msg.routing_key, msg.reply_to)

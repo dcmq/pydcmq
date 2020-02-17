@@ -95,8 +95,14 @@ def fix_meta_info(ds):
         meta = Dataset()
         meta.ImplementationClassUID = PYNETDICOM_IMPLEMENTATION_UID
         meta.ImplementationVersionName = PYNETDICOM_IMPLEMENTATION_VERSION
-        meta.MediaStorageSOPClassUID = ds.SOPClassUID
-        meta.MediaStorageSOPInstanceUID = ds.SOPInstanceUID
+        try:
+            meta.MediaStorageSOPClassUID = ds.SOPClassUID
+        except:
+            meta.MediaStorageSOPClassUID = '1.2.276.0.7230010.3.1.0.1'
+        try:
+            meta.MediaStorageSOPInstanceUID = ds.SOPInstanceUID
+        except:
+            meta.MediaStorageSOPInstanceUID = '1.2.276.0.7230010.3.1.4.8323329.10856.1560082132.76381'
         meta.TransferSyntaxUID = "1.2.840.10008.1.2.1"
         ds.file_meta = meta
         ds.is_little_endian = True
