@@ -64,7 +64,7 @@ async def dcmhandler(channel, ds, uri):
         print(f"ctautorecon: {uri} ({ds.SeriesDescription}) is not for autorecon")
         return
     print(f"ctautorecon: converting {uri} ({ds.SeriesDescription})")
-    niidir = Path.home() / ".dimseweb" / "nii" / ds.StudyInstanceUID
+    niidir = Path.home() / ".dcmq" / "nii" / ds.StudyInstanceUID
     with tempfile.TemporaryDirectory() as tempdir:
         path = Path(tempdir)
         os.environ["ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS"] = "1"

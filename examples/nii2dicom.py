@@ -92,7 +92,7 @@ async def dcmhandler(channel, ds, uri):
     ni = nb.load(uri)
     dicoms = nii2dicom(ni, ds)
     refds = dicoms[0]
-    outdir = f"{os.environ['HOME']}/.dimseweb/derived/{refds.StudyInstanceUID}/{refds.SeriesInstanceUID}"
+    outdir = f"{os.environ['HOME']}/.dcmq/derived/{refds.StudyInstanceUID}/{refds.SeriesInstanceUID}"
     pathlib.Path(outdir).mkdir(parents=True, exist_ok=True)
     for dcm in dicoms:
         filepath = outdir + "/" + dcm.SOPInstanceUID

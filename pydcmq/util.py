@@ -15,7 +15,7 @@ from pynetdicom import (
 )
 
 def getFilename(ds):
-    filename = str(Path.home()) + "/.dimseweb/master/" + ds.StudyInstanceUID
+    filename = str(Path.home()) + "/.dcmq/master/" + ds.StudyInstanceUID
     if "SeriesInstanceUID" in ds and len(ds.SeriesInstanceUID)>0:
         filename += "/" + ds.SeriesInstanceUID
     if "SOPInstanceUID" in ds and len(ds.SOPInstanceUID)>0:

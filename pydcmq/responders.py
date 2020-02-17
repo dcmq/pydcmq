@@ -63,8 +63,11 @@ async def async_responder(server, queue, methods, dcmhandler):
     print(f"dcmq: awaiting messages")
     await queue.consume(handle_msg)
 
-def responder_loop(server, queue, methods, dcmhandler):
-    loop = asyncio.new_event_loop()
+def responder_loop(server, queue, methods, dcmhandler, loop = None):
+    run_loop = False
+    if loop == None:
+        loop = asyncio.new_event_loop()
+        run_loop = True
     asyncio.get_child_watcher().attach_loop(loop)
     loop.create_task(
         async_responder( 
@@ -74,4 +77,5 @@ def responder_loop(server, queue, methods, dcmhandler):
             dcmhandler=dcmhandler
         )
     )
-    loop.run_forever()
+    if run_loop:
+        loop.run_forever()

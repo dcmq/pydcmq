@@ -9,7 +9,7 @@ import dicom2nifti.settings as settings
 
 async def dcmhandler(channel, ds, uri):
     print(f"dcm2niix: converting {uri} ({ds.SeriesDescription})")
-    outdir = f"{os.environ['HOME']}/.dimseweb/nii/{ds.StudyInstanceUID}"
+    outdir = f"{os.environ['HOME']}/.dcmq/nii/{ds.StudyInstanceUID}"
     pathlib.Path(outdir).mkdir(parents=True, exist_ok=True)
     count = 0
     with os.scandir(uri) as it:
