@@ -36,7 +36,7 @@ import logging
 import socket
 import random
 from pydicom.pixel_data_handlers import gdcm_handler, pillow_handler
-from pydcmq import consumer_loop, responder_loop, publish_nifti, publish_nifti_study, publish_dcm_series, publish_dcm, reply_dcm, reply_fin
+from pydcmq import consumer_loop, responder_loop, publish_nifti, publish_nifti_study, publish_dcm_series, publish_dcm, reply_dcm, reply_fin, reply_start
 
 logger = logging.getLogger('pynetdicom')
 logger.setLevel(logging.INFO)
@@ -53,14 +53,6 @@ transfer_syntax_full = [
 
 pydicom.config.pixel_data_handlers = [gdcm_handler, pillow_handler]
 
-def parseCFINDResponses(responses):
-    for (status, identifier) in responses:
-        if status:
-            logging.debug('C-FIND query status: 0x{0:04x}'.format(status.Status))
-
-            # If the status is 'Pending' then identifier is the C-FIND response
-            if status.Status in (0xFF00, 0xFF01):
-                yield identifier
 
 class SCUfind(object):
     _instance = None
@@ -96,13 +88,12 @@ def _cFind(ds, limit = 0):
     context = assoc._get_valid_context(sop_class, '', 'scu')
     # Use the C-FIND service to send the identifier
     responses = assoc.send_c_find(ds, StudyRootQueryRetrieveInformationModelFind, msg_id=msg_id)
-    #responses_copy = []
     count = 0
     for (status, identifier) in responses:
         if status:
-            yield (status, identifier)
-            #responses_copy.append(deepcopy((status, identifier)))
-            count += 1
+            if status.Status in (0xFF00, 0xFF01):
+                yield identifier
+                count += 1
             if count == limit:
                 assoc.send_c_cancel(msg_id, context.context_id)
                 break
@@ -128,21 +119,18 @@ def _cFindSeries(ds, limit = 0):
     ds2.QueryRetrieveLevel = 'STUDY'
     responses = _cFindStudy(ds2)
     study_queries = []
-    for (status, identifier) in responses:
-        if status and status.Status in (0xFF00, 0xFF01):
-            ds3 = deepcopy(ds2)
-            ds3.QueryRetrieveLevel = 'SERIES'
-            ds3.StudyInstanceUID = identifier.StudyInstanceUID
-            study_queries.append(ds3)
+    for identifier in responses:
+        ds3 = deepcopy(ds2)
+        ds3.QueryRetrieveLevel = 'SERIES'
+        ds3.StudyInstanceUID = identifier.StudyInstanceUID
+        study_queries.append(ds3)
 
     series_generators = []
     for query in study_queries:
         series_generators.append(_cFind(query, limit=limit))
 
     for series_generator in series_generators:
-        for (status, identifier) in series_generator:
-            if status and status.Status in (0xFF00, 0xFF01):
-                yield (status, identifier)
+        yield from series_generator
 
 def _cFindInstances(ds, limit = 0):
     ds2 = deepcopy(ds)
@@ -159,44 +147,29 @@ def _cFindInstances(ds, limit = 0):
     ds2.QueryRetrieveLevel = 'SERIES'
     responses = _cFindSeries(ds2)
     series_queries = []
-    for (status, identifier) in responses:
-        if status and status.Status in (0xFF00, 0xFF01):
-            ds3 = deepcopy(ds2)
-            ds3.StudyInstanceUID = identifier.StudyInstanceUID
-            ds3.SeriesInstanceUID = identifier.SeriesInstanceUID
-            ds3.QueryRetrieveLevel = 'IMAGE'
-            series_queries.append(ds3)
+    for identifier in responses:
+        ds3 = deepcopy(ds2)
+        ds3.StudyInstanceUID = identifier.StudyInstanceUID
+        ds3.SeriesInstanceUID = identifier.SeriesInstanceUID
+        ds3.QueryRetrieveLevel = 'IMAGE'
+        series_queries.append(ds3)
 
     instances_generators = []
     for query in series_queries:
         instances_generators.append(_cFind(query, limit=limit))
 
     for instance_generator in instances_generators:
-        for (status, identifier) in instance_generator:
-            if status and status.Status in (0xFF00, 0xFF01):
-                yield (status, identifier)
+        yield from instance_generator
         
-def find_studies(ds, limit=0):
-    responses = _cFindStudy(ds, limit=limit)
-    yield from parseCFINDResponses(responses)
-
-def find_series(ds, limit=0):
-    responses = _cFindSeries(ds, limit=limit)
-    yield from parseCFINDResponses(responses)
-
-def find_instances(ds, limit=0):
-    responses = _cFindInstances(ds, limit=limit)
-    return parseCFINDResponses(responses)
-
 async def dcmhandler(channel, ds, uri, method, reply_to):
+    await reply_start(channel, reply_to)
+    retlist = []
     if method == 'find.studies':
-        retlist = find_studies(ds)
+        retlist = _cFindStudy(ds, limit=0)
     elif method == 'find.series':
-        retlist = find_series(ds)
+        retlist = _cFindSeries(ds, limit=0)
     elif method == 'find.instances':
-        retlist = find_instances(ds)
-    else:
-        return
+        retlist = _cFindInstances(ds, limit=0)
     for ret in retlist:
         await reply_dcm(channel, reply_to, ret, uri="")
     await reply_fin(channel, reply_to)
