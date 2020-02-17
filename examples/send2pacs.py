@@ -41,7 +41,7 @@ def _cStore(ds):
         for context in StoragePresentationContexts:
             ae.add_requested_context(context.abstract_syntax, transfer_syntax)
     # Associate with peer AE
-    assoc = ae.associate("127.0.0.1", 11112)
+    assoc = ae.associate("127.0.0.1", 4006)
 
     if assoc.is_established:
         # Use the C-STORE service to send the dataset
