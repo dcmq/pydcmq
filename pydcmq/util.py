@@ -66,7 +66,7 @@ def dataElementToValue(dataElement, datasetencoding, subvalue=None):
         value = subvalue
     else:
         value = dataElement.value
-    if value == '':
+    if value == '' or value == None:
         return None
     if type(value) in [str, int, float, list]:
         return value

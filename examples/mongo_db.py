@@ -157,7 +157,7 @@ if __name__ == '__main__':
         queue="",
         methods=[
             'find.*',
-            'get.*',
+            'get.instance',
             'stored.instance'
         ],
         dcmhandler=dcmhandler,
