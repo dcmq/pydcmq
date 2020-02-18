@@ -3,6 +3,7 @@ from pydicom.charset import convert_encodings
 from pydicom import Dataset, DataElement, Sequence, dcmwrite, dcmread
 from pydicom.tag import Tag
 from pydicom.filebase import DicomBytesIO
+from pydicom.uid import generate_uid
 from pydicom.datadict import tag_for_keyword, dictionary_VR
 import os
 from pathlib import Path
@@ -90,8 +91,13 @@ def dataElementToValue(dataElement, datasetencoding, subvalue=None):
 
 def fix_meta_info(ds):
     try:
-        ds.file_meta
+        meta = ds.file_meta
+        if not 'SOPClassUID' in ds:
+            ds.file_meta.MediaStorageSOPClassUID = '1.2.276.0.7230010.3.1.0.1'
+        if not 'SOPInstanceUID' in ds:
+            ds.file_meta.MediaStorageSOPInstanceUID = generate_uid()
     except:
+        ds.fix_meta_info()
         meta = Dataset()
         meta.ImplementationClassUID = PYNETDICOM_IMPLEMENTATION_UID
         meta.ImplementationVersionName = PYNETDICOM_IMPLEMENTATION_VERSION
@@ -102,33 +108,22 @@ def fix_meta_info(ds):
         try:
             meta.MediaStorageSOPInstanceUID = ds.SOPInstanceUID
         except:
-            meta.MediaStorageSOPInstanceUID = '1.2.276.0.7230010.3.1.4.8323329.10856.1560082132.76381'
+            meta.MediaStorageSOPInstanceUID = generate_uid()
         meta.TransferSyntaxUID = "1.2.840.10008.1.2.1"
         ds.file_meta = meta
         ds.is_little_endian = True
         ds.is_implicit_VR = False
-        ds.fix_meta_info()
 
 def datasetToBinary(ds: Dataset):
     fix_meta_info(ds)
 
     with DicomBytesIO() as dcmfile:
-        try:
-            dcmwrite(dcmfile, ds, write_like_original=False)
-        except Exception as e:
-            print(e)
-            #import IPython; IPython.embed()
-            return None
+        dcmwrite(dcmfile, ds, write_like_original=False)
         dcmfile.seek(0)
         return dcmfile.read()
 
 def datasetFromBinary(data, specific_tags=None, skipPixel = False):
-    try:
-        return dcmread(DicomBytesIO(data), specific_tags=specific_tags, stop_before_pixels = skipPixel, force=True)
-    except Exception as e:
-        print(e)
-        #import IPython; IPython.embed()
-        return None
+    return dcmread(DicomBytesIO(data), specific_tags=specific_tags, stop_before_pixels = skipPixel, force=True)
 
 def datasetToJSON(ds : Dataset, datasetencoding = 'ISO_IR 6', filter_dataset = None, skipBinary = True, skipPixel = True):
     #return json.loads(ds.to_json())
