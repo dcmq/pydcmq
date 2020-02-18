@@ -21,10 +21,7 @@ import random
 import tempfile
 from pathlib import Path
 from pydicom.pixel_data_handlers import gdcm_handler, pillow_handler
-from pydcmq import consumer_loop, responder_loop, publish_nifti, \
-    publish_nifti_study, publish_dcm_series, publish_dcm, \
-    publish_dcm_study,reply_dcm, publish_find_instance,\
-    reply_fin
+from pydcmq import *
 import shutil
  
 def movefile(sourcePath, dst):
@@ -42,7 +39,7 @@ calling_ae = "RWSN225M"
 move_dest_port = 4006
 dimse_mode = "GET" # "GET" or "MOVE"
 
-async def get(channel, ds, reply):
+async def get(channel, ds):
     with tempfile.TemporaryDirectory() as tmpdirname:
         dcmpath = str(join(tmpdirname, "tmp.dcm"))
         pydicom.dcmwrite(dcmpath, ds)
@@ -62,31 +59,29 @@ async def get(channel, ds, reply):
             filepath = getFilename(newds)
             movefile(tmpfilepath, filepath)
             await publish_dcm(channel, newds, filepath)
-            await reply_dcm(channel, reply, newds, filepath)
     
 
-async def dcmhandler(channel, ds, uri, method, reply_to):
+async def dcmhandler(channel, ds, uri, method):
     queryds = Dataset()
     if method == 'get.instance':
         queryds.QueryRetrieveLevel = 'IMAGE'
         queryds.StudyInstanceUID = ds.StudyInstanceUID
         queryds.SeriesInstanceUID = ds.SeriesInstanceUID
         queryds.SOPInstanceUID = ds.SOPInstanceUID
-        await get(channel, queryds, reply_to)
+        await get(channel, queryds)
     if method == 'get.study':
         queryds.QueryRetrieveLevel = 'STUDY'
         queryds.StudyInstanceUID = ds.StudyInstanceUID
-        await get(channel, queryds, reply_to)
+        await get(channel, queryds)
         uri = getFilename(ds)
         await publish_dcm_study(channel, ds, uri)
     if method == 'get.series':
         queryds.QueryRetrieveLevel = 'SERIES'
         queryds.StudyInstanceUID = ds.StudyInstanceUID
         queryds.SeriesInstanceUID = ds.SeriesInstanceUID
-        await get(channel, queryds, reply_to)
+        await get(channel, queryds)
         uri = getFilename(ds)
         await publish_dcm_series(channel, ds, uri)
-    await reply_fin(channel, reply_to)
 
 
 if __name__ == '__main__':

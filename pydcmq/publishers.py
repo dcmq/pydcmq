@@ -18,14 +18,13 @@ async def publish_dcm(channel, ds, uri, data=None):
     )
     print(f"dcmq: published dicom instance {uri}")
 
-async def publish_find_instance(channel, ds, reply_to):
+async def publish_find_instance(channel, ds):
     dicom_exchange = await channel.declare_exchange(
         'amq.topic', ExchangeType.TOPIC, durable=True
     )
     await dicom_exchange.publish(
         Message(
-            body=datasetToBinary(ds),
-            reply_to=reply_to
+            body=datasetToBinary(ds)
         ),
         routing_key="find.instances"
     )

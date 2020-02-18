@@ -2,31 +2,6 @@ import asyncio
 from aio_pika import IncomingMessage, Message, ExchangeType, connect_robust
 from .util import datasetFromBinary, datasetToBinary
 
-async def reply_dcm(channel, reply_to, ds, uri, data=None):
-    if reply_to == None:
-        return
-    if data == None:
-        data = datasetToBinary(ds)
-    await channel.default_exchange.publish(
-        Message(
-            body=data,
-            headers={"uri": uri}
-        ),
-        routing_key=reply_to
-    )
-    print(f"dcmq: replied dicom instance {uri} to {reply_to}")
-
-async def reply_fin(channel, reply_to):
-    if reply_to == None:
-        return
-    await channel.default_exchange.publish(
-        Message(
-            body=b'FIN',
-        ),
-        routing_key=reply_to
-    )
-    print(f"dcmq: replied FIN to {reply_to}")
-
 async def async_responder(server, queue, methods, dcmhandler):
     loop = asyncio.get_running_loop()
     connection = await connect_robust(server, loop=loop)
@@ -45,14 +20,14 @@ async def async_responder(server, queue, methods, dcmhandler):
 
 
     async def handle_msg(msg: IncomingMessage):
-        print(f"dcmq: got message with routing key {msg.routing_key}, wants reply to {msg.reply_to}")
+        print(f"dcmq: got message with routing key {msg.routing_key}")
         ds = datasetFromBinary(msg.body)
         uri = ""
         if "uri" in msg.headers:
             uri = msg.headers["uri"]
         if ds != None:
             try:
-                await dcmhandler(channel, ds, uri, msg.routing_key, msg.reply_to)
+                await dcmhandler(channel, ds, uri, msg.routing_key)
                 msg.ack()
             except Exception as e:
                 msg.reject(requeue=True)

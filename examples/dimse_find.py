@@ -162,20 +162,16 @@ async def _cFindInstances(channel, ds, limit = 0):
         async for res in _cFind(query, limit=limit):
             yield res
         
-async def dcmhandler(channel, ds, uri, method, reply_to):
+async def dcmhandler(channel, ds, uri, method):
     if method == 'find.studies':
         async for ret in _cFindStudy(ds, limit=0):
-            await reply_dcm(channel, reply_to, ret, uri="")
             await publish_found_study(channel, ret)
     elif method == 'find.series':
         async for ret in _cFindSeries(channel, ds, limit=0):
-            await reply_dcm(channel, reply_to, ret, uri="")
             await publish_found_series(channel, ret)
     elif method == 'find.instances':
         async for ret in _cFindInstances(channel, ds, limit=0):
-            await reply_dcm(channel, reply_to, ret, uri="")
-            #await publish_found_instance(channel, ret)
-    await reply_fin(channel, reply_to)
+            await publish_found_instance(channel, ret)
 
 server_ip = "10.3.21.20"
 server_ae = "RADWIPACS"
