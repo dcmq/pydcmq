@@ -73,7 +73,7 @@ class SCUfind(object):
         pass
             
 
-def _cFind(ds, limit = 0):
+async def _cFind(ds, limit = 0):
     scu = SCUfind()
     ae = scu.ae
     if 'PatientName' in ds and not str(ds.PatientName).endswith('*'):
@@ -84,7 +84,8 @@ def _cFind(ds, limit = 0):
         server_ip, server_port, ae_title=server_ae
     )
     if not assoc.is_established:
-        return 'association to dimse server failed'
+        print('association to dimse server failed')
+        return
     
     msg_id = 1
     context = assoc._get_valid_context(sop_class, '', 'scu')
@@ -101,14 +102,15 @@ def _cFind(ds, limit = 0):
                 break
     assoc.release()
 
-def _cFindStudy(ds, limit = 0):
+async def _cFindStudy(ds, limit = 0):
     ds2 = deepcopy(ds)
     if 'StudyInstanceUID' not in ds:
         ds2.StudyInstanceUID = ''
     ds2.QueryRetrieveLevel = 'STUDY'
-    yield from _cFind(ds2, limit = limit)
+    async for res in _cFind(ds2, limit = limit):
+        yield res
 
-def _cFindSeries(channel, ds, limit = 0):
+async def _cFindSeries(channel, ds, limit = 0):
     ds2 = deepcopy(ds)
     if 'StudyInstanceUID' not in ds:
         ds2.StudyInstanceUID = ''
@@ -116,12 +118,13 @@ def _cFindSeries(channel, ds, limit = 0):
         ds2.SeriesInstanceUID = ''
     if  ds2.StudyInstanceUID != '':
         ds2.QueryRetrieveLevel = 'SERIES'
-        yield from _cFind(ds2, limit = limit)
+        async for res in _cFind(ds2, limit = limit):
+            yield res
         return
     ds2.QueryRetrieveLevel = 'STUDY'
     responses = _cFindStudy(ds2)
     study_queries = []
-    for identifier in responses:
+    async for identifier in responses:
         await publish_found_study(channel, identifier)
         ds3 = deepcopy(ds2)
         ds3.QueryRetrieveLevel = 'SERIES'
@@ -129,9 +132,10 @@ def _cFindSeries(channel, ds, limit = 0):
         study_queries.append(ds3)
 
     for query in study_queries:
-        yield from _cFind(query, limit=limit)
+        async for res in _cFind(query, limit=limit):
+            yield res
 
-def _cFindInstances(channel, ds, limit = 0):
+async def _cFindInstances(channel, ds, limit = 0):
     ds2 = deepcopy(ds)
     if 'StudyInstanceUID' not in ds:
         ds2.StudyInstanceUID = ''
@@ -141,12 +145,13 @@ def _cFindInstances(channel, ds, limit = 0):
         ds2.SOPInstanceUID = ''
     if ds2.SeriesInstanceUID != '':
         ds2.QueryRetrieveLevel = 'IMAGE'
-        yield from _cFind(ds2, limit = limit)
+        for res in await _cFind(ds2, limit = limit):
+            yield res
         return
     ds2.QueryRetrieveLevel = 'SERIES'
     responses = _cFindSeries(channel, ds2)
     series_queries = []
-    for identifier in responses:
+    async for identifier in responses:
         await publish_found_series(channel, identifier)
         ds3 = deepcopy(ds2)
         ds3.StudyInstanceUID = identifier.StudyInstanceUID
@@ -155,20 +160,21 @@ def _cFindInstances(channel, ds, limit = 0):
         series_queries.append(ds3)
 
     for query in series_queries:
-        yield from _cFind(query, limit=limit)
+        async for res in _cFind(query, limit=limit):
+            yield res
         
 async def dcmhandler(channel, ds, uri, method, reply_to):
     await reply_start(channel, reply_to)
     if method == 'find.studies':
-        for ret in _cFindStudy(ds, limit=0):
+        async for ret in _cFindStudy(ds, limit=0):
             await reply_dcm(channel, reply_to, ret, uri="")
             await publish_found_study(channel, ret)
     elif method == 'find.series':
-        for ret in _cFindSeries(channel, ds, limit=0):
+        async for ret in _cFindSeries(channel, ds, limit=0):
             await reply_dcm(channel, reply_to, ret, uri="")
             await publish_found_series(channel, ret)
     elif method == 'find.instances':
-        for ret in _cFindInstances(channel, ds, limit=0):
+        async for ret in _cFindInstances(channel, ds, limit=0):
             await reply_dcm(channel, reply_to, ret, uri="")
             #await publish_found_instance(channel, ret)
     await reply_fin(channel, reply_to)
@@ -184,7 +190,7 @@ if __name__ == '__main__':
         server_port = int(server_port)
     responder_loop(
         server="amqp://guest:guest@127.0.0.1/",
-        queue="dimse",
+        queue="",
         methods=[
             'find.#'
         ],

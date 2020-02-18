@@ -97,7 +97,6 @@ def fix_meta_info(ds):
         if not 'SOPInstanceUID' in ds:
             ds.file_meta.MediaStorageSOPInstanceUID = generate_uid()
     except:
-        ds.fix_meta_info()
         meta = Dataset()
         meta.ImplementationClassUID = PYNETDICOM_IMPLEMENTATION_UID
         meta.ImplementationVersionName = PYNETDICOM_IMPLEMENTATION_VERSION
@@ -113,6 +112,7 @@ def fix_meta_info(ds):
         ds.file_meta = meta
         ds.is_little_endian = True
         ds.is_implicit_VR = False
+        ds.fix_meta_info()
 
 def datasetToBinary(ds: Dataset):
     fix_meta_info(ds)

@@ -11,6 +11,9 @@ pynetdicom = "*"
 dicom2nifti = {editable = true,git = "https://github.com/vsaase/dicom2nifti",ref = "allow_dcmdjpeg"}
 aiohttp = "*"
 pydcmq = {editable = true,path = "./.."}
+pandas = "*"
+pymongo = "*"
+motor = "*"
 
 [requires]
 python_version = "3.7"

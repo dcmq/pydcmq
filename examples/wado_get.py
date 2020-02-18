@@ -96,6 +96,7 @@ async def dcmhandler(channel, ds, uri, method, reply_to):
     await reply_fin(channel, reply_to)
 
 endpoint = "http://127.0.0.1:8080/dcm4chee-arc/aets/DCM4CHEE/wado"
+endpoint = "http://10.3.21.20:8080/wado/wado"
 MAXTASKS = 50
 
 if __name__ == '__main__':
@@ -103,7 +104,7 @@ if __name__ == '__main__':
         endpoint = sys.argv[1]
     responder_loop(
         server="amqp://guest:guest@127.0.0.1/",
-        queue="wado",
+        queue="",
         methods=[
             'get.*',
         ],

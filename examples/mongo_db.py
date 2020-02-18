@@ -154,7 +154,7 @@ if __name__ == '__main__':
     dicom_db = MongoDicomDB(loop)
     responder_loop(
         server="amqp://guest:guest@127.0.0.1/",
-        queue="mongodb",
+        queue="",
         methods=[
             'find.*',
             'get.*',

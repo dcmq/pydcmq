@@ -46,7 +46,10 @@ async def async_responder(server, queue, methods, dcmhandler):
     dicom_exchange = await channel.declare_exchange(
         'amq.topic', ExchangeType.TOPIC, durable=True
     )
-    queue = await channel.declare_queue(queue)
+    if queue == "":
+        queue = await channel.declare_queue()
+    else:
+        queue = await channel.declare_queue(queue)
     for method in methods:
         await queue.bind(dicom_exchange, routing_key=method)
         print(f"dcmq: bound queue {queue} to method {method} at topic exchange {dicom_exchange}")
