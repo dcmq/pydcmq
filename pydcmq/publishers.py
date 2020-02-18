@@ -31,7 +31,37 @@ async def publish_find_instance(channel, ds, reply_to):
     )
     print(f"dcmq: published find instance request for study {ds.StudyInstanceUID}")
 
-async def publish_found_study(channel, ds):
+async def publish_found_study(channel, ds, data=None):
+    if data == None:
+        data = datasetToBinary(ds)
+    dicom_exchange = await channel.declare_exchange(
+        'amq.topic', ExchangeType.TOPIC, durable=True
+    )
+    await dicom_exchange.publish(
+        Message(
+            body=data,
+        ),
+        routing_key="found.study"
+    )
+    print(f"dcmq: published found.study for study {ds.StudyInstanceUID}")
+
+
+async def publish_found_series(channel, ds, data=None):
+    if data == None:
+        data = datasetToBinary(ds)
+    dicom_exchange = await channel.declare_exchange(
+        'amq.topic', ExchangeType.TOPIC, durable=True
+    )
+    await dicom_exchange.publish(
+        Message(
+            body=data,
+        ),
+        routing_key="found.series"
+    )
+    print(f"dcmq: published found.series for series {ds.SeriesInstanceUID}")
+
+
+async def publish_found_instance(channel, ds):
     dicom_exchange = await channel.declare_exchange(
         'amq.topic', ExchangeType.TOPIC, durable=True
     )
@@ -39,9 +69,9 @@ async def publish_found_study(channel, ds):
         Message(
             body=datasetToBinary(ds),
         ),
-        routing_key="found.study"
+        routing_key="found.instance"
     )
-    print(f"dcmq: published found.study for study {ds.StudyInstanceUID}")
+    print(f"dcmq: published found.instance")
 
 async def publish_dcm_series(channel, ds, uri):
     dicom_exchange = await channel.declare_exchange(

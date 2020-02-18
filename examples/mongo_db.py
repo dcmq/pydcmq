@@ -6,7 +6,6 @@ import json
 from pydicom.filebase import DicomBytesIO
 import io
 import pandas as pd
-from util import datasetToJSON, datasetFromJSON, datasetToBinary, datasetFromBinary
 from pymongo import DESCENDING
 import asyncio
 from motor import motor_asyncio
@@ -15,7 +14,7 @@ from pydcmq.util import datasetToJSON, datasetFromBinary, datasetToBinary, datas
 from pydcmq import consumer_loop, responder_loop, publish_nifti, \
     publish_nifti_study, publish_dcm_series, publish_dcm, \
     publish_dcm_study,reply_dcm, publish_find_instance,\
-    reply_fin, reply_start
+    reply_fin, reply_start, publish_found_study, publish_found_series
 
 class MongoDicomDB(object):
     def __init__(self, loop):
@@ -119,26 +118,34 @@ class MongoDicomDB(object):
 
 async def dcmhandler(channel, ds, uri, routing_key, reply_to):
         method = routing_key
-        if type(msg.reply_to) == str and len(msg.reply_to)>0:
+        if type(reply_to) == str and len(reply_to)>0:
             await reply_start(channel, reply_to)
 
         if method == 'find.studies':
             retlist = dicom_db.findStudies(ds)
+            async for data, uri in retlist:
+                await reply_dcm(channel, reply_to, None, uri, data=data)
+                await publish_found_study(channel, datasetFromBinary(data), data=data)
         elif method == 'find.series':
             retlist = dicom_db.findSeries(ds)
+            async for data, uri in retlist:
+                await reply_dcm(channel, reply_to, None, uri, data=data)
+                await publish_found_series(channel, datasetFromBinary(data), data=data)
         elif method == 'get.study':
             retlist = dicom_db.getStudy(ds)
+            async for data, uri in retlist:
+                await reply_dcm(channel, reply_to, None, uri, data=data)
         elif method == 'get.instance':
             retlist = dicom_db.getInstance(ds)
+            async for data, uri in retlist:
+                await reply_dcm(channel, reply_to, None, uri, data=data)
         elif method in ['stored.instance']:
-            await dicom_db.addDataset(ds, data=msg.body)
+            await dicom_db.addDataset(ds, uri=uri)
             return
         else:
             return
         
         if type(reply_to) == str and len(reply_to)>0:
-            async for data, uri in retlist:
-                await reply_dcm(channel, reply_to, None, uri, data=data)
             await reply_fin(channel, reply_to)
 
         

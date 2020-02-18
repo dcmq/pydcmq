@@ -91,7 +91,7 @@ async def dcmhandler(channel, ds, uri, method, reply_to):
         await get(channel, ds, reply_to)
         uri = getFilename(ds)
         await publish_dcm_series(channel, ds, uri)
-    elif method == 'get.instance':
+    elif method in ['get.instance',]:
         await get_instance(channel, ds, reply_to)
     await reply_fin(channel, reply_to)
 
@@ -105,7 +105,7 @@ if __name__ == '__main__':
         server="amqp://guest:guest@127.0.0.1/",
         queue="wado",
         methods=[
-            'get.*'
+            'get.*',
         ],
         dcmhandler=dcmhandler
     )

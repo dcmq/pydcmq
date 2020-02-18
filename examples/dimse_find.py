@@ -37,7 +37,8 @@ import socket
 import random
 import sys
 from pydicom.pixel_data_handlers import gdcm_handler, pillow_handler
-from pydcmq import consumer_loop, responder_loop, publish_nifti, publish_nifti_study, publish_dcm_series, publish_dcm, reply_dcm, reply_fin, reply_start, publish_found_study
+from pydcmq import consumer_loop, responder_loop, publish_nifti, publish_nifti_study, \
+    publish_dcm_series, publish_dcm, reply_dcm, reply_fin, reply_start, publish_found_study, publish_found_series, publish_found_instance
 
 logger = logging.getLogger('pynetdicom')
 logger.setLevel(logging.INFO)
@@ -107,7 +108,7 @@ def _cFindStudy(ds, limit = 0):
     ds2.QueryRetrieveLevel = 'STUDY'
     yield from _cFind(ds2, limit = limit)
 
-def _cFindSeries(ds, limit = 0):
+def _cFindSeries(channel, ds, limit = 0):
     ds2 = deepcopy(ds)
     if 'StudyInstanceUID' not in ds:
         ds2.StudyInstanceUID = ''
@@ -121,6 +122,7 @@ def _cFindSeries(ds, limit = 0):
     responses = _cFindStudy(ds2)
     study_queries = []
     for identifier in responses:
+        await publish_found_study(channel, identifier)
         ds3 = deepcopy(ds2)
         ds3.QueryRetrieveLevel = 'SERIES'
         ds3.StudyInstanceUID = identifier.StudyInstanceUID
@@ -129,7 +131,7 @@ def _cFindSeries(ds, limit = 0):
     for query in study_queries:
         yield from _cFind(query, limit=limit)
 
-def _cFindInstances(ds, limit = 0):
+def _cFindInstances(channel, ds, limit = 0):
     ds2 = deepcopy(ds)
     if 'StudyInstanceUID' not in ds:
         ds2.StudyInstanceUID = ''
@@ -142,9 +144,10 @@ def _cFindInstances(ds, limit = 0):
         yield from _cFind(ds2, limit = limit)
         return
     ds2.QueryRetrieveLevel = 'SERIES'
-    responses = _cFindSeries(ds2)
+    responses = _cFindSeries(channel, ds2)
     series_queries = []
     for identifier in responses:
+        await publish_found_series(channel, identifier)
         ds3 = deepcopy(ds2)
         ds3.StudyInstanceUID = identifier.StudyInstanceUID
         ds3.SeriesInstanceUID = identifier.SeriesInstanceUID
@@ -156,17 +159,18 @@ def _cFindInstances(ds, limit = 0):
         
 async def dcmhandler(channel, ds, uri, method, reply_to):
     await reply_start(channel, reply_to)
-    retlist = []
     if method == 'find.studies':
         for ret in _cFindStudy(ds, limit=0):
             await reply_dcm(channel, reply_to, ret, uri="")
             await publish_found_study(channel, ret)
     elif method == 'find.series':
-        for ret in _cFindSeries(ds, limit=0):
+        for ret in _cFindSeries(channel, ds, limit=0):
             await reply_dcm(channel, reply_to, ret, uri="")
+            await publish_found_series(channel, ret)
     elif method == 'find.instances':
-        for ret in _cFindInstances(ds, limit=0):
+        for ret in _cFindInstances(channel, ds, limit=0):
             await reply_dcm(channel, reply_to, ret, uri="")
+            #await publish_found_instance(channel, ret)
     await reply_fin(channel, reply_to)
 
 server_ip = "10.3.21.20"
