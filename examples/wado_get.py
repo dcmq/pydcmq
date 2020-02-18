@@ -17,11 +17,7 @@ import logging
 import socket
 import random
 from pydicom.pixel_data_handlers import gdcm_handler, pillow_handler
-from pydcmq import consumer_loop, responder_loop, publish_nifti, \
-    publish_nifti_study, publish_dcm_series, publish_dcm, \
-    publish_dcm_study,reply_dcm, publish_find_instance,\
-    reply_fin, reply_start
-
+from pydcmq import *
 pydicom.config.pixel_data_handlers = [gdcm_handler, pillow_handler]
 
 
@@ -56,18 +52,10 @@ async def get(channel, ds, reply):
     queue = await channel.declare_queue(exclusive=True)
     await publish_find_instance(channel, ds, queue.name)
     async with queue.iterator() as queue_iter:
-        repcount = 0
         async for message in queue_iter:
             async with message.process():
                 if message.body == b'FIN':
-                    repcount -= 1
-                    if repcount == 0:
-                        break
-                    continue
-                elif message.body == b'START':
-                    repcount += 1
-                    continue
-                
+                    break
                 newds = datasetFromBinary(message.body)
                 if newds == None:
                     continue
@@ -82,7 +70,6 @@ async def get(channel, ds, reply):
     
 
 async def dcmhandler(channel, ds, uri, method, reply_to):
-    await reply_start(channel, reply_to)
     if method == 'get.study':
         await get(channel, ds, reply_to)
         uri = getFilename(ds)

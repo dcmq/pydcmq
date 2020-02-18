@@ -11,10 +11,7 @@ import asyncio
 from motor import motor_asyncio
 import re
 from pydcmq.util import datasetToJSON, datasetFromBinary, datasetToBinary, datasetFromJSON, writeFile, filterBinary, getFilename
-from pydcmq import consumer_loop, responder_loop, publish_nifti, \
-    publish_nifti_study, publish_dcm_series, publish_dcm, \
-    publish_dcm_study,reply_dcm, publish_find_instance,\
-    reply_fin, reply_start, publish_found_study, publish_found_series
+from pydcmq import *
 
 class MongoDicomDB(object):
     def __init__(self, loop):
@@ -118,9 +115,6 @@ class MongoDicomDB(object):
 
 async def dcmhandler(channel, ds, uri, routing_key, reply_to):
         method = routing_key
-        if type(reply_to) == str and len(reply_to)>0:
-            await reply_start(channel, reply_to)
-
         if method == 'find.studies':
             retlist = dicom_db.findStudies(ds)
             async for data, uri in retlist:
@@ -157,7 +151,7 @@ if __name__ == '__main__':
         queue="",
         methods=[
             'find.*',
-            'get.instance',
+            'get.*',
             'stored.instance'
         ],
         dcmhandler=dcmhandler,

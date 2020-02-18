@@ -27,17 +27,6 @@ async def reply_fin(channel, reply_to):
     )
     print(f"dcmq: replied FIN to {reply_to}")
 
-async def reply_start(channel, reply_to):
-    if reply_to == None:
-        return
-    await channel.default_exchange.publish(
-        Message(
-            body=b'START',
-        ),
-        routing_key=reply_to
-    )
-    print(f"dcmq: replied START to {reply_to}")
-
 async def async_responder(server, queue, methods, dcmhandler):
     loop = asyncio.get_running_loop()
     connection = await connect_robust(server, loop=loop)

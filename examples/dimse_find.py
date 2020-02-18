@@ -37,8 +37,7 @@ import socket
 import random
 import sys
 from pydicom.pixel_data_handlers import gdcm_handler, pillow_handler
-from pydcmq import consumer_loop, responder_loop, publish_nifti, publish_nifti_study, \
-    publish_dcm_series, publish_dcm, reply_dcm, reply_fin, reply_start, publish_found_study, publish_found_series, publish_found_instance
+from pydcmq import *
 
 logger = logging.getLogger('pynetdicom')
 logger.setLevel(logging.INFO)
@@ -164,7 +163,6 @@ async def _cFindInstances(channel, ds, limit = 0):
             yield res
         
 async def dcmhandler(channel, ds, uri, method, reply_to):
-    await reply_start(channel, reply_to)
     if method == 'find.studies':
         async for ret in _cFindStudy(ds, limit=0):
             await reply_dcm(channel, reply_to, ret, uri="")

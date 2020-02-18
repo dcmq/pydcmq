@@ -24,7 +24,7 @@ from pydicom.pixel_data_handlers import gdcm_handler, pillow_handler
 from pydcmq import consumer_loop, responder_loop, publish_nifti, \
     publish_nifti_study, publish_dcm_series, publish_dcm, \
     publish_dcm_study,reply_dcm, publish_find_instance,\
-    reply_fin, reply_start
+    reply_fin
 import shutil
  
 def movefile(sourcePath, dst):
@@ -66,7 +66,6 @@ async def get(channel, ds, reply):
     
 
 async def dcmhandler(channel, ds, uri, method, reply_to):
-    await reply_start(channel, reply_to)
     queryds = Dataset()
     if method == 'get.instance':
         queryds.QueryRetrieveLevel = 'IMAGE'
