@@ -53,7 +53,7 @@ async def dcmhandler(channel, ds, uri):
         await publish(channel, "stored.series.nii", ds, uri=outdir)
         
 if __name__ == '__main__':
-    consumer_loop(
+    subscriber_loop(
         server="amqp://guest:guest@127.0.0.1/",
         queue="dicom2nii",
         methods=['stored.study'],

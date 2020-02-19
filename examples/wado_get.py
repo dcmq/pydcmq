@@ -12,7 +12,7 @@ from copy import deepcopy
 import aiohttp 
 import urllib
 import asyncio
-import sys
+import sys,os
 import logging
 import socket
 import random
@@ -58,10 +58,20 @@ async def dcmhandler(channel, ds, uri, method):
         await get_instance(channel, ds)
     elif method == "found.series.instances":
         #newds = first image in series
-        await publish(channel, "stored.series", newds, uri=uri)
+        path = getFilename(ds)
+        for root, dirs, files in os.walk(path):
+            for name in files:
+                newds = pydicom.dcmread(os.path.join(root, name), stop_before_pixels=True)
+                await publish(channel, "stored.series", newds, uri=uri)
+                return
     elif method == "found.study.instances":
         #newds = first image in study
-        await publish(channel, "stored.study", newds, uri=uri)
+        path = getFilename(ds)
+        for root, dirs, files in os.walk(path):
+            for name in files:
+                newds = pydicom.dcmread(os.path.join(root, name), stop_before_pixels=True)
+                await publish(channel, "stored.study", newds, uri=uri)
+                return
 
 
 endpoint = "http://127.0.0.1:8080/dcm4chee-arc/aets/DCM4CHEE/wado"
@@ -71,7 +81,7 @@ MAXTASKS = 50
 if __name__ == '__main__':
     if len(sys.argv) > 1:
         endpoint = sys.argv[1]
-    responder_loop(
+    subscriber_loop(
         server="amqp://guest:guest@127.0.0.1/",
         queue="",
         methods=[

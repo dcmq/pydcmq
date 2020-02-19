@@ -85,7 +85,7 @@ async def dcmhandler(channel, ds, uri, method):
 
 
 if __name__ == '__main__':
-    responder_loop(
+    subscriber_loop(
         server="amqp://guest:guest@127.0.0.1/",
         queue="dcmtk_movegetscu",
         methods=[

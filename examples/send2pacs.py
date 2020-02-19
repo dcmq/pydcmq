@@ -12,7 +12,7 @@ import pydicom
 from pydicom.uid import UID
 from pydicom import Dataset
 from pydicom.tag import Tag
-from pydcmq import consumer_loop
+from pydcmq import subscriber_loop
 import asyncio
 import time
 
@@ -79,7 +79,7 @@ async def dcmhandler(channel, ds, uri):
         
 if __name__ == '__main__':
     assoc = None
-    consumer_loop(
+    subscriber_loop(
         server="amqp://guest:guest@127.0.0.1/",
         queue="",
         methods=['stored.instance'],

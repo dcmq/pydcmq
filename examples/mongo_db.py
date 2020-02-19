@@ -137,7 +137,7 @@ async def dcmhandler(channel, ds, uri, routing_key):
 if __name__ == '__main__':
     loop = asyncio.new_event_loop()
     dicom_db = MongoDicomDB(loop)
-    responder_loop(
+    subscriber_loop(
         server="amqp://guest:guest@127.0.0.1/",
         queue="",
         methods=[

@@ -191,7 +191,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         server_ip, server_ae, server_port, calling_ae = sys.argv[1:]
         server_port = int(server_port)
-    responder_loop(
+    subscriber_loop(
         server="amqp://guest:guest@127.0.0.1/",
         queue="",
         methods=[

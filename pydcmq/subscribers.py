@@ -1,8 +1,8 @@
 import asyncio
-from aio_pika import IncomingMessage, ExchangeType, connect_robust
-from .util import datasetFromBinary
+from aio_pika import IncomingMessage, Message, ExchangeType, connect_robust
+from .util import datasetFromBinary, datasetToBinary
 
-async def async_consumer(server, queue, methods, dcmhandler):
+async def async_subscriber(server, queue, methods, dcmhandler):
     loop = asyncio.get_running_loop()
     connection = await connect_robust(server, loop=loop)
     print(f"dcmq: connected to {server}")
@@ -20,15 +20,14 @@ async def async_consumer(server, queue, methods, dcmhandler):
 
 
     async def handle_msg(msg: IncomingMessage):
-        if not "uri" in msg.headers:
-            uri = ""
-        else:
-            uri = msg.headers['uri']
-        print(f"dcmq: got message with routing key {msg.routing_key} and uri {uri}")
+        print(f"dcmq: got message with routing key {msg.routing_key}")
         ds = datasetFromBinary(msg.body)
+        uri = ""
+        if "uri" in msg.headers:
+            uri = msg.headers["uri"]
         if ds != None:
             try:
-                await dcmhandler(channel, ds, uri)
+                await dcmhandler(channel, ds, uri, msg.routing_key)
                 msg.ack()
             except Exception as e:
                 msg.reject(requeue=True)
@@ -37,15 +36,19 @@ async def async_consumer(server, queue, methods, dcmhandler):
     print(f"dcmq: awaiting messages")
     await queue.consume(handle_msg)
 
-def consumer_loop(server, queue, methods, dcmhandler):
-    loop = asyncio.new_event_loop()
+def subscriber_loop(server, queue, methods, dcmhandler, loop = None):
+    run_loop = False
+    if loop == None:
+        loop = asyncio.new_event_loop()
+        run_loop = True
     asyncio.get_child_watcher().attach_loop(loop)
     loop.create_task(
-        async_consumer( 
+        async_subscriber( 
             server=server,
             queue=queue,
             methods=methods,
             dcmhandler=dcmhandler
         )
     )
-    loop.run_forever()
+    if run_loop:
+        loop.run_forever()
