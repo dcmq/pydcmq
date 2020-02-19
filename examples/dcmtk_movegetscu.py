@@ -58,7 +58,7 @@ async def get(channel, ds):
             newds = pydicom.dcmread(tmpfilepath, stop_before_pixels=True)
             filepath = getFilename(newds)
             movefile(tmpfilepath, filepath)
-            await publish_dcm(channel, newds, filepath)
+            await publish(channel, "stored.instance", newds, uri=filepath)
     
 
 async def dcmhandler(channel, ds, uri, method):
@@ -74,14 +74,14 @@ async def dcmhandler(channel, ds, uri, method):
         queryds.StudyInstanceUID = ds.StudyInstanceUID
         await get(channel, queryds)
         uri = getFilename(ds)
-        await publish_dcm_study(channel, ds, uri)
+        await publish(channel, "stored.study", ds, uri=uri)
     if method == 'get.series':
         queryds.QueryRetrieveLevel = 'SERIES'
         queryds.StudyInstanceUID = ds.StudyInstanceUID
         queryds.SeriesInstanceUID = ds.SeriesInstanceUID
         await get(channel, queryds)
         uri = getFilename(ds)
-        await publish_dcm_series(channel, ds, uri)
+        await publish(channel, "stored.series", ds, uri=uri)
 
 
 if __name__ == '__main__':

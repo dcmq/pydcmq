@@ -101,13 +101,13 @@ async def _cFind(ds, limit = 0):
                 break
     assoc.release()
 
-async def _cFindStudy(ds, limit = 0):
+async def _cFindStudy(channel, ds, limit = 0):
     ds2 = deepcopy(ds)
     if 'StudyInstanceUID' not in ds:
         ds2.StudyInstanceUID = ''
     ds2.QueryRetrieveLevel = 'STUDY'
     async for res in _cFind(ds2, limit = limit):
-        yield res
+        await publish(channel, "found.study", res)
 
 async def _cFindSeries(channel, ds, limit = 0):
     ds2 = deepcopy(ds)
@@ -115,24 +115,21 @@ async def _cFindSeries(channel, ds, limit = 0):
         ds2.StudyInstanceUID = ''
     if 'SeriesInstanceUID' not in ds:
         ds2.SeriesInstanceUID = ''
-    if  ds2.StudyInstanceUID != '':
+    if ds2.StudyInstanceUID != '':
         ds2.QueryRetrieveLevel = 'SERIES'
         async for res in _cFind(ds2, limit = limit):
-            yield res
+            await publish(channel, "found.series", res)
+        await publish(channel, "found.study.series", ds2)
         return
     ds2.QueryRetrieveLevel = 'STUDY'
-    responses = _cFindStudy(ds2)
-    study_queries = []
+    responses = _cFind(ds2)
     async for identifier in responses:
-        await publish_found_study(channel, identifier)
         ds3 = deepcopy(ds2)
         ds3.QueryRetrieveLevel = 'SERIES'
         ds3.StudyInstanceUID = identifier.StudyInstanceUID
-        study_queries.append(ds3)
-
-    for query in study_queries:
-        async for res in _cFind(query, limit=limit):
-            yield res
+        async for res in _cFind(ds3, limit=limit):
+            await publish(channel, "found.series", res)
+        await publish(channel, "found.study.series", identifier)
 
 async def _cFindInstances(channel, ds, limit = 0):
     ds2 = deepcopy(ds)
@@ -145,33 +142,45 @@ async def _cFindInstances(channel, ds, limit = 0):
     if ds2.SeriesInstanceUID != '':
         ds2.QueryRetrieveLevel = 'IMAGE'
         for res in await _cFind(ds2, limit = limit):
-            yield res
+            await publish(channel, "found.instance", res)
+        await publish(channel, "found.series.instances", ds2)
         return
-    ds2.QueryRetrieveLevel = 'SERIES'
-    responses = _cFindSeries(channel, ds2)
-    series_queries = []
+    if ds2.StudyInstanceUID != '':
+        ds2.QueryRetrieveLevel = 'SERIES'
+        responses = _cFind(channel, ds2)
+        async for identifier in responses:
+            ds3 = deepcopy(ds2)
+            ds3.StudyInstanceUID = identifier.StudyInstanceUID
+            ds3.SeriesInstanceUID = identifier.SeriesInstanceUID
+            ds3.QueryRetrieveLevel = 'IMAGE'
+            async for res in _cFind(ds3, limit=limit):
+                await publish(channel, "found.instance", res)
+            await publish(channel, "found.series.instances", identifier)
+        await publish(channel, "found.study.instances", ds2)
+        return
+    ds2.QueryRetrieveLevel = 'STUDY'
+    responses = _cFind(ds2)
     async for identifier in responses:
-        await publish_found_series(channel, identifier)
         ds3 = deepcopy(ds2)
+        ds3.QueryRetrieveLevel = 'SERIES'
         ds3.StudyInstanceUID = identifier.StudyInstanceUID
-        ds3.SeriesInstanceUID = identifier.SeriesInstanceUID
-        ds3.QueryRetrieveLevel = 'IMAGE'
-        series_queries.append(ds3)
-
-    for query in series_queries:
-        async for res in _cFind(query, limit=limit):
-            yield res
+        async for res in _cFind(ds3, limit=limit):
+            ds4 = deepcopy(ds4)
+            ds4.StudyInstanceUID = res.StudyInstanceUID
+            ds4.SeriesInstanceUID = res.SeriesInstanceUID
+            ds4.QueryRetrieveLevel = 'IMAGE'
+            async for res4 in _cFind(ds4, limit=limit):
+                await publish(channel, "found.instance", res4)
+            await publish(channel, "found.series.instances", res)
+        await publish(channel, "found.study.instances", identifier)
         
 async def dcmhandler(channel, ds, uri, method):
     if method == 'find.studies':
-        async for ret in _cFindStudy(ds, limit=0):
-            await publish_found_study(channel, ret)
+        await _cFindStudy(channel, ds, limit=0)
     elif method == 'find.series':
-        async for ret in _cFindSeries(channel, ds, limit=0):
-            await publish_found_series(channel, ret)
+        await _cFindSeries(channel, ds, limit=0)
     elif method == 'find.instances':
-        async for ret in _cFindInstances(channel, ds, limit=0):
-            await publish_found_instance(channel, ret)
+        await _cFindInstances(channel, ds, limit=0)
 
 server_ip = "10.3.21.20"
 server_ae = "RADWIPACS"

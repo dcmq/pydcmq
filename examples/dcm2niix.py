@@ -4,7 +4,7 @@ from pydicom.tag import Tag
 import dicom2nifti
 import os 
 import pathlib
-from pydcmq import consumer_loop, publish_nifti, publish_nifti_study, async_consumer
+from pydcmq import *
 import dicom2nifti.settings as settings
 
 async def dcmhandler(channel, ds, uri):
@@ -50,7 +50,7 @@ async def dcmhandler(channel, ds, uri):
                     print(f"dcm2niix: error converting {series.name} ({refds.SeriesDescription}): {e}")
                     continue
     if count>0:
-        await publish_nifti_study(channel, ds, outdir)
+        await publish(channel, "stored.series.nii", ds, uri=outdir)
         
 if __name__ == '__main__':
     consumer_loop(

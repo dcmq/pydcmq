@@ -7,7 +7,7 @@ import pathlib
 import nibabel as nb
 import numpy as np
 from copy import deepcopy
-from pydcmq import consumer_loop, publish_nifti, publish_nifti_study, publish_dcm_series, fix_meta_info, publish_dcm
+from pydcmq import *
 
 def nii2dicom(ni, ds):
     if len(ni.shape) == 3:
@@ -97,8 +97,8 @@ async def dcmhandler(channel, ds, uri):
     for dcm in dicoms:
         filepath = outdir + "/" + dcm.SOPInstanceUID
         dcmwrite(filepath, dcm, write_like_original=False)
-        await publish_dcm(channel, dcm, filepath)
-    await publish_dcm_series(channel, refds, outdir)
+        await publish(channel, "stored.instance", dcm, uri=filepath)
+    await publish(channel, "stored.study", refds, uri=outdir)
         
 if __name__ == '__main__':
     consumer_loop(

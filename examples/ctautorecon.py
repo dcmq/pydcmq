@@ -8,7 +8,7 @@ import numpy as np
 from scipy.io import savemat, loadmat
 from scipy.linalg import qr
 from copy import deepcopy
-from pydcmq import consumer_loop, publish_nifti, publish_nifti_study, publish_dcm_series
+from pydcmq import *
 
 localdir = Path(os.path.dirname(os.path.realpath(__file__)))
 
@@ -88,7 +88,7 @@ async def dcmhandler(channel, ds, uri):
     oldimagetype[1] = "SECONDARY"
     oldimagetype[2] = "RESAMPLED"
     ds.ImageType = oldimagetype
-    await publish_nifti(channel, ds, str(out))
+    await publish(channel, "stored.series.nii", ds, uri=str(out))
         
 if __name__ == '__main__':
     consumer_loop(

@@ -4,7 +4,7 @@ from pydicom import dcmread
 from pydicom.tag import Tag
 import os 
 import pathlib
-from pydcmq import consumer_loop, publish_nifti, publish_nifti_study, async_consumer
+from pydcmq import *
 import dicom2nifti.settings as settings
 
 settings.disable_validate_orthogonal()
@@ -35,12 +35,12 @@ async def dcmhandler(channel, ds, uri):
                     indir = os.path.join(uri, series.name)
                     dicom2nifti.dicom_series_to_nifti(indir, outfile, reorient_nifti=True)
                     count += 1
-                    await publish_nifti(channel, refds, outfile)
+                    await publish(channel, "stored.series.nii", refds, uri=outfile)
                 except Exception as e:
                     print(f"dicom2nii: error converting {series.name} ({refds.SeriesDescription}): {e}")
                     continue
     if count>0:
-        await publish_nifti_study(channel, ds, outdir)
+        await publish(channel, "stored.study.nii", ds, uri=outdir)
         
 if __name__ == '__main__':
     consumer_loop(

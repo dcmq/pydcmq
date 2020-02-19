@@ -42,24 +42,27 @@ async def get_instance(channel, ds):
     smalldata, newds = filterBinary(filedata)
     filepath = getFilename(newds)
     await writeFile(filepath, newds, data=filedata)
-    await publish_dcm(channel, newds, filepath, data=smalldata)
+    await publish(channel, "stored.instance", newds, uri=filepath, data=smalldata)
  
                 
 async def get(channel, ds):
-    await publish_find_instance(channel, ds)
+    await publish(channel, "find.instances", ds)
     
 
 async def dcmhandler(channel, ds, uri, method):
     if method == 'get.study':
         await get(channel, ds)
-        uri = getFilename(ds)
-        await publish_dcm_study(channel, ds, uri)
     elif method == 'get.series':
         await get(channel, ds)
-        uri = getFilename(ds)
-        await publish_dcm_series(channel, ds, uri)
     elif method == 'found.instance':
         await get_instance(channel, ds)
+    elif method == "found.series.instances":
+        #newds = first image in series
+        await publish(channel, "stored.series", newds, uri=uri)
+    elif method == "found.study.instances":
+        #newds = first image in study
+        await publish(channel, "stored.study", newds, uri=uri)
+
 
 endpoint = "http://127.0.0.1:8080/dcm4chee-arc/aets/DCM4CHEE/wado"
 endpoint = "http://10.3.21.20:8080/wado/wado"
@@ -73,7 +76,9 @@ if __name__ == '__main__':
         queue="",
         methods=[
             'get.*',
-            'found.instance'
+            'found.instance',
+            'found.series.instances',
+            'found.study.instances'
         ],
         dcmhandler=dcmhandler
     )

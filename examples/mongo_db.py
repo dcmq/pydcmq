@@ -118,11 +118,11 @@ async def dcmhandler(channel, ds, uri, routing_key):
         if method == 'find.studies':
             retlist = dicom_db.findStudies(ds)
             async for data, uri in retlist:
-                await publish_found_study(channel, datasetFromBinary(data), data=data)
+                await publish(channel, "found.study", datasetFromBinary(data), data=data)
         elif method == 'find.series':
             retlist = dicom_db.findSeries(ds)
             async for data, uri in retlist:
-                await publish_found_series(channel, datasetFromBinary(data), data=data)
+                await publish(channel, "found.series", datasetFromBinary(data), data=data)
         elif method == 'get.study':
             retlist = dicom_db.getStudy(ds)
         elif method == 'get.instance':
