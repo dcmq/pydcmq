@@ -84,7 +84,7 @@ def nii2dicom(ni, ds):
             out_dcms.append(d)
     return out_dcms
 
-async def dcmhandler(channel, ds, uri):
+async def dcmhandler(channel, ds, uri, routing_key):
     if not Tag("ImageType") in ds or not "RESAMPLED" in ds.ImageType: #only convert resampled data
         print(f"dicom2nii: {uri} ({ds.SeriesDescription}) is not a resampled image")
         return

@@ -56,7 +56,7 @@ def antsAffineToOrthogonal(infilename, outfilename):
     # savemat(fout, {"fixed": m["fixed"]}, format='4')
     # fout.close()
 
-async def dcmhandler(channel, ds, uri):
+async def dcmhandler(channel, ds, uri, routing_key):
     if not Tag("ImageType") in ds or not "PRIMARY" in ds.ImageType: #only convert primary data
         print(f"ctautorecon: {uri} ({ds.SeriesDescription}) is not a primary image")
         return

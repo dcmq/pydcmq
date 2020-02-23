@@ -13,7 +13,7 @@ settings.enable_resampling()
 settings.set_resample_spline_interpolation_order(1)
 settings.set_resample_padding(-1024)
 
-async def dcmhandler(channel, ds, uri):
+async def dcmhandler(channel, ds, uri, routing_key):
     print(f"dicom2nii: converting {uri} ({ds.SeriesDescription})")
     outdir = f"{os.environ['HOME']}/.dcmq/nii/{ds.StudyInstanceUID}"
     pathlib.Path(outdir).mkdir(parents=True, exist_ok=True)

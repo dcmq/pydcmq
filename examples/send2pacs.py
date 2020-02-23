@@ -58,7 +58,7 @@ def _cStore(ds_queue):
     assoc.release()
     return ds_queue[n_sent:]
 
-async def dcmhandler(channel, ds, uri):
+async def dcmhandler(channel, ds, uri, routing_key):
     global queued
     global lastsend
     if ds.Modality == "SR":
