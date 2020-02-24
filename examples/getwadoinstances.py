@@ -49,7 +49,7 @@ async def dcmhandler(channel, ds, uri, method):
     elif method == "found.series.instances":
         #newds = first image in series
         path = getFilename(ds)
-        for i in range(2):
+        for i in range(10):
             for root, dirs, files in os.walk(path):
                 for name in files:
                     try:
@@ -60,19 +60,19 @@ async def dcmhandler(channel, ds, uri, method):
                     await publish(channel, "stored.series", newds, uri=path)
                     return
             #couldnt find a readable file, wait a second and try again
-            if i == 0: await asyncio.sleep(1)
+            await asyncio.sleep(1)
 
     elif method == "found.study.instances":
         #newds = first image in study
         path = getFilename(ds)
-        for i in range(2):
+        for i in range(10):
             for root, dirs, files in os.walk(path):
                 for name in files:
                     newds = pydicom.dcmread(os.path.join(root, name), stop_before_pixels=True)
                     await publish(channel, "stored.study", newds, uri=path)
                     return
             #couldnt find a readable file, wait a second and try again
-            if i == 0: await asyncio.sleep(1)
+            await asyncio.sleep(1)
 
 MAXTASKS = 50
 

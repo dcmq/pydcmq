@@ -130,7 +130,11 @@ class MongoDicomDB(object):
 
 async def dcmhandler(channel, ds, uri, routing_key):
         method = routing_key
-        if method == 'find.studies':
+        if method == "get.reports":
+            retlist = dicom_db.findInstances(ds)
+            async for data, uri in retlist:
+                await publish(channel, "got.report", datasetFromBinary(data), uri=uri, data=data)
+        elif method == 'find.studies':
             retlist = dicom_db.findStudies(ds)
             async for data, uri in retlist:
                 await publish(channel, "found.study", datasetFromBinary(data), uri=uri, data=data)
@@ -163,7 +167,8 @@ if __name__ == '__main__':
             #'find.studies',
             #'find.series',
             #'get.*',
-            'stored.instance'
+            'stored.instance',
+            'get.reports'
         ],
         dcmhandler=dcmhandler,
         loop = loop
