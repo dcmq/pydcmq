@@ -67,6 +67,21 @@ class MongoDicomDB(object):
             }):
             yield res['binary'], res['uri']
 
+    async def findInstances(self, ds, limit=0,):
+        query = {}
+        if 'StudyInstanceUID' in ds and len(ds.StudyInstanceUID)>0:
+            query['StudyInstanceUID'] = ds.StudyInstanceUID
+        if 'SeriesInstanceUID' in ds and len(ds.SeriesInstanceUID)>0:
+            query['SeriesInstanceUID'] = ds.StudyInstanceUID
+        if 'Modality' in ds and len(ds.Modality)>0:
+            query['json.00080060.Value.0'] = ds.Modality
+        if 'PatientName' in ds:
+            query['json.00100010.Value.0.Alphabetic'] = {'$regex': '^' + re.escape(str(ds.PatientName))}
+        if 'PatientID' in ds and len(ds.PatientID)>0:
+            query['json.00100020.Value.0'] = ds.PatientID
+        async for res in self.datasets.find(query):
+            yield res['binary'], res['uri']
+
     async def findSeries(self, ds, limit=0,):
         query = {}
         if 'StudyInstanceUID' in ds and len(ds.StudyInstanceUID)>0:
@@ -118,16 +133,20 @@ async def dcmhandler(channel, ds, uri, routing_key):
         if method == 'find.studies':
             retlist = dicom_db.findStudies(ds)
             async for data, uri in retlist:
-                await publish(channel, "found.study", datasetFromBinary(data), data=data)
+                await publish(channel, "found.study", datasetFromBinary(data), uri=uri, data=data)
         elif method == 'find.series':
             retlist = dicom_db.findSeries(ds)
             async for data, uri in retlist:
-                await publish(channel, "found.series", datasetFromBinary(data), data=data)
+                await publish(channel, "found.series", datasetFromBinary(data), uri=uri, data=data)
+        elif method == 'find.instances':
+            retlist = dicom_db.findInstances(ds)
+            async for data, uri in retlist:
+                await publish(channel, "found.instance", datasetFromBinary(data), uri=uri, data=data)
         elif method == 'get.study':
             retlist = dicom_db.getStudy(ds)
         elif method == 'get.instance':
             retlist = dicom_db.getInstance(ds)
-        elif method in ['stored.instance']:
+        elif method == 'stored.instance':
             await dicom_db.addDataset(ds, uri=uri)
             return
         else:
@@ -141,7 +160,8 @@ if __name__ == '__main__':
         server="amqp://guest:guest@127.0.0.1/",
         queue="",
         methods=[
-            'find.*',
+            #'find.studies',
+            #'find.series',
             #'get.*',
             'stored.instance'
         ],
