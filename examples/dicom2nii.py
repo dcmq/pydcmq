@@ -45,7 +45,7 @@ async def dcmhandler(channel, ds, uri, routing_key):
 if __name__ == '__main__':
     subscriber_loop(
         server="amqp://guest:guest@127.0.0.1/",
-        queue="dicom2nii",
+        queue="",
         methods=['stored.study'],
         dcmhandler=dcmhandler
     )

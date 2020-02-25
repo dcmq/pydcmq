@@ -54,6 +54,7 @@ def get_ip():
     return IP
 
 ownIP = get_ip()
+print(f"own IP is {ownIP}")
 
 ae = None
 if ownIP.startswith('10'):

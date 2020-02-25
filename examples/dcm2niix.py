@@ -7,6 +7,12 @@ import pathlib
 from pydcmq import *
 import dicom2nifti.settings as settings
 
+settings.disable_validate_orthogonal()
+settings.disable_validate_slice_increment()
+settings.enable_resampling()
+settings.set_resample_spline_interpolation_order(1)
+settings.set_resample_padding(-1024)
+
 async def dcmhandler(channel, ds, uri, routing_key):
     print(f"dcm2niix: converting {uri} ({ds.SeriesDescription})")
     outdir = f"{os.environ['HOME']}/.dcmq/nii/{ds.StudyInstanceUID}"
@@ -36,7 +42,7 @@ async def dcmhandler(channel, ds, uri, routing_key):
                         if os.path.exists(os.path.join(outdir, refds.SeriesInstanceUID + "_Tilt_Eq_1.nii")):
                             outfile = os.path.join(outdir, refds.SeriesInstanceUID + "_Tilt_Eq_1.nii")
                         if os.path.exists(outfile):
-                            await publish_nifti(channel, refds, outfile)
+                            await publish(channel, "stored.series.nii", refds, uri=outfile)
                             count += 1
                         else:
                             print(f"dcm2niix: error converting {series.name} ({refds.SeriesDescription}): outfile not found")
@@ -45,7 +51,7 @@ async def dcmhandler(channel, ds, uri, routing_key):
                         print(f"dcm2niix: retrying with dicom2nifti")
                         dicom2nifti.dicom_series_to_nifti(indir, outfile, reorient_nifti=True)
                         count += 1
-                        await publish_nifti(channel, refds, outfile)
+                        await publish(channel, "stored.series.nii", refds, uri=outfile)
                 except Exception as e:
                     print(f"dcm2niix: error converting {series.name} ({refds.SeriesDescription}): {e}")
                     continue
@@ -55,7 +61,7 @@ async def dcmhandler(channel, ds, uri, routing_key):
 if __name__ == '__main__':
     subscriber_loop(
         server="amqp://guest:guest@127.0.0.1/",
-        queue="dicom2nii",
+        queue="",
         methods=['stored.study'],
         dcmhandler=dcmhandler
     )
