@@ -31,7 +31,7 @@ async def get_instance(channel, ds, uri):
     smalldata, newds = filterBinary(filedata)
     filepath = getFilename(newds)
     await writeFile(filepath, newds, data=filedata)
-    #await publish(channel, "stored.instance", newds, uri=filepath, data=smalldata)
+    await publish(channel, "stored.instance", newds, uri=filepath, data=smalldata)
  
                 
 async def get(channel, ds):
