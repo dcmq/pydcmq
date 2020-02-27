@@ -2,7 +2,7 @@ import asyncio
 from aio_pika import IncomingMessage, Message, ExchangeType, connect_robust
 from .util import datasetFromBinary, datasetToBinary
 
-async def async_subscriber(server, queue, methods, dcmhandler):
+async def async_subscriber(server, queue, methods, dcmhandler, additional_args = []):
     loop = asyncio.get_running_loop()
     connection = await connect_robust(server, loop=loop)
     print(f"dcmq: connected to {server}")
@@ -27,7 +27,7 @@ async def async_subscriber(server, queue, methods, dcmhandler):
             uri = msg.headers["uri"]
         if ds != None:
             try:
-                await dcmhandler(channel, ds, uri, msg.routing_key)
+                await dcmhandler(channel, ds, uri, msg.routing_key, *additional_args)
                 msg.ack()
             except Exception as e:
                 msg.reject(requeue=True)
@@ -36,7 +36,7 @@ async def async_subscriber(server, queue, methods, dcmhandler):
     print(f"dcmq: awaiting messages")
     await queue.consume(handle_msg)
 
-def subscriber_loop(server, queue, methods, dcmhandler, loop = None):
+def subscriber_loop(server, queue, methods, dcmhandler, loop = None, additional_args = []):
     run_loop = False
     if loop == None:
         loop = asyncio.new_event_loop()
@@ -47,7 +47,8 @@ def subscriber_loop(server, queue, methods, dcmhandler, loop = None):
             server=server,
             queue=queue,
             methods=methods,
-            dcmhandler=dcmhandler
+            dcmhandler=dcmhandler,
+            additional_args = additional_args
         )
     )
     if run_loop:
