@@ -1,0 +1,8 @@
+pydicom
+pynetdicom
+-e git+https://github.com/vsaase/dicom2nifti@allow_dcmdjpeg#egg=dicom2nifti
+aiohttp
+-e ./..
+pandas
+pymongo
+motor
