@@ -26,7 +26,9 @@ async def publish(channel, routing_key, ds, uri="", data=None):
     elif routing_key == "found.study":
         print(f"dcmq: published found.study for study {ds.StudyInstanceUID}")
     elif routing_key == "found.series":
-        print(f"dcmq: published found.series for series {ds.SeriesInstanceUID}")
+        print(f"dcmq: published found.series for series {ds.SeriesInstanceUID} from study {ds.StudyInstanceUID}")
+    elif routing_key == "found.study.series":
+        print(f"dcmq: published found.study.series for study {ds.StudyInstanceUID}")
     elif routing_key == "found.instance":
         print(f"dcmq: published found.instance")
     elif routing_key == "stored.series":

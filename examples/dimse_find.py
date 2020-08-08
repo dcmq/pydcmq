@@ -131,6 +131,7 @@ async def _cFindStudy(channel, ds, limit = 0):
         await publish(channel, "found.study", res)
 
 async def _cFindSeries(channel, ds, limit = 0):
+    print(f"_cFindSeries {ds}")
     ds2 = deepcopy(ds)
     if 'StudyInstanceUID' not in ds:
         ds2.StudyInstanceUID = ''
@@ -138,9 +139,12 @@ async def _cFindSeries(channel, ds, limit = 0):
         ds2.SeriesInstanceUID = ''
     if ds2.StudyInstanceUID != '':
         ds2.QueryRetrieveLevel = 'SERIES'
+        count = 0
         async for res in _cFind(ds2, limit = limit):
             await publish(channel, "found.series", res)
-        await publish(channel, "found.study.series", ds2)
+            count+=1
+        if count>0:
+            await publish(channel, "found.study.series", ds2)
         return
     ds2.QueryRetrieveLevel = 'STUDY'
     responses = _cFind(ds2)
@@ -148,9 +152,12 @@ async def _cFindSeries(channel, ds, limit = 0):
         ds3 = deepcopy(ds2)
         ds3.QueryRetrieveLevel = 'SERIES'
         ds3.StudyInstanceUID = identifier.StudyInstanceUID
+        count = 0
         async for res in _cFind(ds3, limit=limit):
             await publish(channel, "found.series", res)
-        await publish(channel, "found.study.series", identifier)
+            count+=1
+        if count>0:
+            await publish(channel, "found.study.series", identifier)
 
 async def _cFindInstances(channel, ds, limit = 0):
     ds2 = deepcopy(ds)
@@ -179,12 +186,16 @@ async def _cFindInstances(channel, ds, limit = 0):
             ds3.StudyInstanceUID = identifier.StudyInstanceUID
             ds3.SeriesInstanceUID = identifier.SeriesInstanceUID
             ds3.QueryRetrieveLevel = 'IMAGE'
+            count1 = 0
             async for res in _cFind(ds3, limit=limit):
                 if use_wado: uri = _wadoURIURL(res)
                 else: uri=_dimseURI()
                 await publish(channel, "found.instance", res, uri=uri)
-            await publish(channel, "found.series.instances", identifier)
-        await publish(channel, "found.study.instances", ds2)
+                count1 += 1
+            if count1>0: 
+                await publish(channel, "found.series.instances", identifier)
+                count0 += 1
+        if count0>0: await publish(channel, "found.study.instances", ds2)
         return
     ds2.QueryRetrieveLevel = 'STUDY'
     responses = _cFind(ds2)
