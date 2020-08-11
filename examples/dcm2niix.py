@@ -56,7 +56,7 @@ async def dcmhandler(channel, ds, uri, routing_key):
                     print(f"dcm2niix: error converting {series.name} ({refds.SeriesDescription}): {e}")
                     continue
     if count>0:
-        await publish(channel, "stored.series.nii", ds, uri=outdir)
+        await publish(channel, "stored.study.nii", ds, uri=outdir)
         
 if __name__ == '__main__':
     subscriber_loop(

@@ -20,9 +20,9 @@ def isthinheadct(d):
     for s in ["Topo", "Angio", "Neck", "Thorax"]:
         if s in d.SeriesDescription:
             return False
-    if float(d.SliceThickness) < 2.0 and d.Modality == "CT":
-        return True
-    return False
+    if float(d.SliceThickness) > 2.0 or d.Modality != "CT":
+        return False
+    return True
 
 async def run(cmd):
     loop = asyncio.get_running_loop()
@@ -71,18 +71,20 @@ async def dcmhandler(channel, ds, uri, routing_key):
         mni = localdir / "scct_unsmooth.nii.gz"
         mni_hd = localdir / "scct_unsmooth_0.5_pad10.nii.gz"
         ct = uri
-        cmd = f"antsRegistration --dimensionality 3 --output {path}/ct2mni --interpolation Linear --winsorize-image-intensities \[0.005,0.995\] --use-histogram-matching 1 --initial-moving-transform \[{mni},{ct},1\] --transform Rigid\[0.1\] --metric MI\[{mni},{ct},1,32,Regular,0.25\] --convergence \[1000x500x250,1e-6,10\] --shrink-factors 8x4x2 --smoothing-sigmas 3x2x1vox --transform Affine\[0.1\] --metric MI\[{mni},{ct},1,32,Regular,0.25\] --convergence \[1000x500x250x100,1e-6,10\] --shrink-factors 8x4x2x1 --smoothing-sigmas 3x2x1x0vox -v"
+        cmd = (
+            f"antsRegistration --dimensionality 3 --output {path}/ct2mni"
+            " --interpolation Linear --winsorize-image-intensities \[0.005,0.995\] --use-histogram-matching 1 --initial-moving-transform \[{mni},{ct},1\]"
+            " --transform Rigid\[0.1\] --metric MI\[{mni},{ct},1,32,Regular,0.25\] --convergence \[1000x500x250,1e-6,10\] --shrink-factors 8x4x2 --smoothing-sigmas 3x2x1vox"
+        )
         print(cmd)
         await run(cmd) #os.system(cmd)
         ct2mni = path / "ct2mni0GenericAffine.mat"
-        ct2mni_orthogonal = path / "ct2mni0GenericOrthogonal.mat"
-        antsAffineToOrthogonal(ct2mni, ct2mni_orthogonal)
         out = niidir / (ds.SeriesInstanceUID + "MNI.nii.gz")
-        cmd = f"antsApplyTransforms -i {ct} -r {mni_hd} -o {out} -t {ct2mni_orthogonal} --interpolation Linear -v -f -1024"
+        cmd = f"antsApplyTransforms -i {ct} -r {mni_hd} -o {out} -t {ct2mni} --interpolation Linear -v -f -1024"
         print(cmd)
         await run(cmd) #os.system(cmd)
     print(f"ctautorecon: finished converting {uri} ({ds.SeriesDescription})")
-    ds.SeriesDescription += " MNI"
+    ds.SeriesDescription += " MNIrigid"
     oldimagetype = ds.ImageType
     oldimagetype[0] = "DERIVED"
     oldimagetype[1] = "SECONDARY"

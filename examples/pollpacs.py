@@ -12,11 +12,16 @@ def find_loop_generator(args):
     while True:
         now = datetime.now() # current date and time
         onehourago = now - timedelta(minutes=16*60)
-        ds = Dataset()
-        ds.Modality = args.modalities
-        ds.StudyDate = onehourago.strftime("%Y%m%d") + '-'
-        ds.StudyTime = onehourago.strftime("%H%M%S") + '-'
-        yield ds
+        for modality in args.modalities.split(","):
+            ds = Dataset()
+            ds.Modality = modality
+            ds.StudyDate = onehourago.strftime("%Y%m%d") + '-'
+            ds.StudyTime = onehourago.strftime("%H%M%S") + '-'
+            ds.SeriesDate = ''
+            ds.SeriesTime = ''
+            ds.InstitutionName = ''
+            ds.BodyPartExamined = ''
+            yield ds
         time.sleep(60)
 
 
@@ -34,7 +39,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="parse args")
 
-    parser.add_argument('-m','--modalities', default="MR", type=str, help='modalities')
+    parser.add_argument('-m','--modalities', default="MR,CT", type=str, help='comma separated list of modalities to query')
 
     args = parser.parse_args()
     print(args)
