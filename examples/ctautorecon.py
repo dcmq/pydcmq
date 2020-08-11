@@ -73,10 +73,9 @@ async def dcmhandler(channel, ds, uri, routing_key):
         ct = uri
         cmd = (
             f"antsRegistration --dimensionality 3 --output {path}/ct2mni"
-            " --interpolation Linear --winsorize-image-intensities \[0.005,0.995\] --use-histogram-matching 1 --initial-moving-transform \[{mni},{ct},1\]"
-            " --transform Rigid\[0.1\] --metric MI\[{mni},{ct},1,32,Regular,0.25\] --convergence \[1000x500x250,1e-6,10\] --shrink-factors 8x4x2 --smoothing-sigmas 3x2x1vox"
+            f" --interpolation Linear --winsorize-image-intensities \[0.005,0.995\] --use-histogram-matching 1 --initial-moving-transform \[{mni},{ct},1\]"
+            f" --transform Rigid\[0.1\] --metric MI\[{mni},{ct},1,32,Regular,0.25\] --convergence \[1000x500x250,1e-6,10\] --shrink-factors 8x4x2 --smoothing-sigmas 3x2x1vox"
         )
-        print(cmd)
         await run(cmd) #os.system(cmd)
         ct2mni = path / "ct2mni0GenericAffine.mat"
         out = niidir / (ds.SeriesInstanceUID + "MNI.nii.gz")

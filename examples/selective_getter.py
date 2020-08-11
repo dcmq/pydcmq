@@ -12,24 +12,27 @@ def check_series(series):
         print("check_series: zero series in study")
         return False
     now = datetime.now()
-    for seriesUID in series:
+    checked = len(series) * [False]
+    for i, seriesUID in enumerate(series):
         ds = series[seriesUID]
         if not ds.Modality in ["CT"]:
             print(f"check_series: Modality {ds.Modality} not supported")
-            return False
+            continue
         if not ds.InstitutionName in ["www.neuroradiologie-mannheim.de"]:
             print(f"check_series: InstitutionName {ds.InstitutionName} not supported")
-            return False
+            continue
         if not ds.BodyPartExamined in ["HEAD", "BRAIN"]:
             print(f"check_series: BodyPartExamined {ds.BodyPartExamined} not supported")
-            return False
+            print(ds)
+            continue
         dstimestr = ds.SeriesDate + ds.SeriesTime
         dstimestr = dstimestr.split('.')[0]
         dstime = datetime.strptime(dstimestr, "%Y%m%d%H%M%S")
         if now - dstime < timedelta(minutes=10):
             print("check_series: series too fresh, there might be more coming?")
-            return False
-    return True
+            continue
+        checked[i] = True
+    return checked
 
 async def dcmhandler(channel, ds, uri, method):
     if not ds.StudyInstanceUID in studyseries.keys():
@@ -40,10 +43,14 @@ async def dcmhandler(channel, ds, uri, method):
         if not ds.SeriesInstanceUID in studyseries[ds.StudyInstanceUID]['series'].keys():
             studyseries[ds.StudyInstanceUID]['series'][ds.SeriesInstanceUID] = ds
     elif method == "found.study.series":
-        if not download_started[ds.StudyInstanceUID] and check_series(studyseries[ds.StudyInstanceUID]['series']):
-            print(f"starting download for study {ds.StudyInstanceUID}")
-            download_started[ds.StudyInstanceUID] = True
-            await publish(channel, 'get.study', ds)
+        if not download_started[ds.StudyInstanceUID]:
+            checked = check_series(studyseries[ds.StudyInstanceUID]['series'])
+            if any(checked):
+                print(f"starting download for study {ds.StudyInstanceUID}")
+                download_started[ds.StudyInstanceUID] = True
+                dsquery = Dataset()
+                dsquery.StudyInstanceUID = ds.StudyInstanceUID
+                await publish(channel, 'get.study', dsquery)
 
 if __name__ == '__main__':
     subscriber_loop(

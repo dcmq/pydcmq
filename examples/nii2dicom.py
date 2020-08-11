@@ -98,12 +98,12 @@ async def dcmhandler(channel, ds, uri, routing_key):
         filepath = outdir + "/" + dcm.SOPInstanceUID
         dcmwrite(filepath, dcm, write_like_original=False)
         await publish(channel, "stored.instance", dcm, uri=filepath)
-    await publish(channel, "stored.study", refds, uri=outdir)
+    await publish(channel, "stored.series", refds, uri=outdir)
         
 if __name__ == '__main__':
     subscriber_loop(
         server="amqp://guest:guest@127.0.0.1/",
-        queue="nii2dicom",
+        queue="",
         methods=['stored.series.nii'],
         dcmhandler=dcmhandler
     )

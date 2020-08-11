@@ -109,6 +109,7 @@ async def _cFind(ds, limit = 0):
     msg_id = 1
     context = assoc._get_valid_context(sop_class, '', 'scu')
     # Use the C-FIND service to send the identifier
+    #print(f"sending cfind query {ds}")
     responses = assoc.send_c_find(ds, StudyRootQueryRetrieveInformationModelFind, msg_id=msg_id)
     count = 0
     for (status, identifier) in responses:

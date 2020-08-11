@@ -11,17 +11,19 @@ server = "amqp://guest:guest@127.0.0.1/"
 def find_loop_generator(args):
     while True:
         now = datetime.now() # current date and time
-        onehourago = now - timedelta(minutes=16*60)
+        onehourago = now - timedelta(minutes=60)
+        bodyparts = ['HEAD','BRAIN']
         for modality in args.modalities.split(","):
-            ds = Dataset()
-            ds.Modality = modality
-            ds.StudyDate = onehourago.strftime("%Y%m%d") + '-'
-            ds.StudyTime = onehourago.strftime("%H%M%S") + '-'
-            ds.SeriesDate = ''
-            ds.SeriesTime = ''
-            ds.InstitutionName = ''
-            ds.BodyPartExamined = ''
-            yield ds
+            for bodypart in bodyparts:
+                ds = Dataset()
+                ds.Modality = modality
+                ds.StudyDate = onehourago.strftime("%Y%m%d") + '-'
+                ds.StudyTime = onehourago.strftime("%H%M%S") + '-'
+                ds.SeriesDate = ''
+                ds.SeriesTime = ''
+                ds.InstitutionName = 'www.neuroradiologie-mannheim.de'
+                ds.BodyPartExamined = bodypart
+                yield ds
         time.sleep(60)
 
 

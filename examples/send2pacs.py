@@ -15,6 +15,7 @@ from pydicom.tag import Tag
 from pydcmq import subscriber_loop
 import asyncio
 import time
+import os
 
 transfer_syntax = [ExplicitVRLittleEndian,
                    ImplicitVRLittleEndian,
@@ -53,28 +54,37 @@ def _cStore(ds, assoc):
             print('C-STORE request status: 0x{0:04x}'.format(status.Status))
         else:
             print('Connection timed out, was aborted or received invalid response')
+        
     else:
         print('Association rejected, aborted or never connected')
     return assoc
 
-async def dcmhandler(channel, ds, uri, routing_key, *argv):
-    assoc = argv[0]
+async def dcmhandler(channel, ds, uri, routing_key):
     if ds.Modality == "SR":
         return
     try:
-        ds_full = pydicom.dcmread(uri)
-        assoc = _cStore(ds_full, assoc)
+        assoc = None
+        path = uri
+        for i in range(10):
+            for root, dirs, files in os.walk(path):
+                for name in files:
+                    try:
+                        newds = pydicom.dcmread(os.path.join(root, name))
+                    except Exception as e:
+                        print(e)
+                        continue
+                    assoc = _cStore(newds, assoc)
+        if assoc.is_established:
+            assoc.release
+        
     except Exception as e:
         print(f"dcmread failed with {e}")
         return
 
-
 if __name__ == '__main__':
-    assoc = None
     subscriber_loop(
         server="amqp://guest:guest@127.0.0.1/",
         queue="",
-        methods=['stored.instance'],
-        dcmhandler=dcmhandler,
-        additional_args = [assoc]
+        methods=['stored.series'],
+        dcmhandler=dcmhandler
     )
