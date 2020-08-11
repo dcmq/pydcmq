@@ -27,9 +27,12 @@ async def dcmhandler(channel, ds, uri, routing_key):
                             dcmfilename = instance.name
                             break
                 refds = dcmread(os.path.join(uri, series.name, dcmfilename))
-                if not Tag("ImageType") in refds or not "PRIMARY" in refds.ImageType or "RESAMPLED" in ds.ImageType: #only convert primary data
-                    print(f"dcm2niix: {os.path.join(uri, series.name)} ({refds.SeriesDescription}) is not a primary image")
-                    continue
+                try:
+                    if not Tag("ImageType") in refds or not "PRIMARY" in refds.ImageType or "RESAMPLED" in ds.ImageType: #only convert primary data
+                        print(f"dcm2niix: {os.path.join(uri, series.name)} ({refds.SeriesDescription}) is not a primary image")
+                        continue
+                except Exception as e:
+                    print(e)
                 outfile = os.path.join(outdir, refds.SeriesInstanceUID + ".nii")
                 try:
                     indir = os.path.join(uri, series.name)

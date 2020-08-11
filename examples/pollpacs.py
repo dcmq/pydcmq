@@ -11,7 +11,7 @@ server = "amqp://guest:guest@127.0.0.1/"
 def find_loop_generator(args):
     while True:
         now = datetime.now() # current date and time
-        onehourago = now - timedelta(minutes=4*60)
+        onehourago = now - timedelta(minutes=1*60)
         bodyparts = ['HEAD','BRAIN']
         for modality in args.modalities.split(","):
             for bodypart in bodyparts:

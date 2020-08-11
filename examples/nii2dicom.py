@@ -53,7 +53,7 @@ def nii2dicom(ni, ds):
                 if elem.tag.group in [0x8, 0x10, 0x18, 0x20, 0x28, 0x32, 0x40]:
                     d[elem.tag] = deepcopy(elem)
             fix_meta_info(d)
-            d.SOPInstanceUID = generate_uid()
+            d.SOPInstanceUID = generate_uid(entropy_srcs=[d.SeriesInstanceUID, d.SeriesDescription, str(k), str(t), str(uintVOL[:2,:2,k])])
             d.SeriesInstanceUID = generate_uid(entropy_srcs=[d.SeriesInstanceUID, d.SeriesDescription])
             d.PixelSpacing = pixel_spacing
             d.SeriesNumber += 1000

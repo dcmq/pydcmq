@@ -25,16 +25,19 @@ def _cStore(ds_gen):
     transfer_syntax = [ExplicitVRLittleEndian,
                     ImplicitVRLittleEndian,
                     DeflatedExplicitVRLittleEndian,
-                    ExplicitVRBigEndian]
-    for context in StoragePresentationContexts:
-        ae.add_requested_context(context.abstract_syntax, transfer_syntax)
+                    ExplicitVRBigEndian,
+                    JPEGLossless]
+    # for context in StoragePresentationContexts:
+    #     ae.add_requested_context(context.abstract_syntax, transfer_syntax)
+    added = []
     for ds in dsets:
-        if ds.file_meta.TransferSyntaxUID not in transfer_syntax:
-            for context in StoragePresentationContexts:
-                try:
-                    ae.add_requested_context(context.abstract_syntax, [ds.file_meta.TransferSyntaxUID])
-                except: pass
-            transfer_syntax += [ds.file_meta.TransferSyntaxUID]
+        try:
+            if str(ds.file_meta.MediaStorageSOPClassUID) + str(ds.file_meta.TransferSyntaxUID) not in added:
+                ae.add_requested_context(ds.file_meta.MediaStorageSOPClassUID, [ds.file_meta.TransferSyntaxUID])
+                added += [str(ds.file_meta.MediaStorageSOPClassUID) + str(ds.file_meta.TransferSyntaxUID)]
+        except Exception as e:
+            print(e)
+            continue
     # Associate with peer AE
     assoc = ae.associate("127.0.0.1", 4006)
 
